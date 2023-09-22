@@ -498,8 +498,8 @@ def output_gwas(all_gene_id_to_name, gene_to_gwas_traits, gene_to_gwas_parent_tr
 def output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_ld_out_dir, ld_duckdb_fn):
     if not os.path.exists(as_gwas_ld_out_dir):
         os.makedirs(as_gwas_ld_out_dir)
-    ld_header = ['haplotype', 'chrom', 'pos', 'type', 'gwas_trait', 'gwas_trait_parent_term', 'gwas_pvalue']
-    gwas_detail_header = ['snp_id', 'gene_name', 'gene_id', 'haplotype', 'gwas_trait', 'gwas_parent_term', 'ld_trait', 'ld_parent_term', 'ld_snps', 'ld_scores']
+    ld_header = ['haplotype', 'chrom', 'pos', 'type', 'gwas_trait', 'gwas_trait_efo_term', 'gwas_pvalue']
+    gwas_detail_header = ['snp_id', 'gene_name', 'gene_id', 'haplotype', 'gwas_trait', 'gwas_trait_efo_term', 'ld_trait', 'ld_efo_term', 'ld_snps', 'ld_scores']
     all_gene_name_to_id = {v: k for k, v in all_gene_id_to_name.items()}
     with db.connect(ld_duckdb_fn, read_only=True) as ld_con: #, open(as_gwas_detail_out, 'w') as gwas_detail_fp:
         # gwas_detail_fp.write('{}\n'.format('\t'.join(gwas_detail_header)))

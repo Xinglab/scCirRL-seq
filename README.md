@@ -1,6 +1,6 @@
 # NanoHunter
 
-## <a name="nh"></a>What is NanoHunter ?
+## What is NanoHunter ?
 NanoHunter is an analysis pipeline designed for long-read single-cell RNA-seq data.
 It mainly consists of two part: 
 1. Barcode & UMI calling
@@ -9,8 +9,8 @@ It mainly consists of two part:
 <!-- ![workflow](https://github.com/Xinglab/NanoHunter/blob/master/NanoHunter_workflow.png) -->
 
 
-## <a name="install"></a>Installation
-### <a name="os"></a>Operating system and python version
+## Installation
+### Operating system and python version
 NanoHunter was written in python3 and tested on Linux/Unix systems, so it may not work well with python2 and/or other systems(Windows/Mac).
 
 <!-- ### <a name="dep"></a>~~Dependencies~~ installed via conda
@@ -29,24 +29,33 @@ NanoHunter was written in python3 and tested on Linux/Unix systems, so it may no
 (Optional) For rolling circle amplification (RCA) single-cell long-read data:
 * [TideHunter](https://github.com/yangao07/TideHunter) >= 1.5.4 -->
 
-### <a name="conda"></a>Via conda
+### Via conda (install locally for now)
 ```
-conda create -n nanohunter python=3.8 nanohunter
-conda activate nanohunter
+git clone git@github.com:Xinglab/NanoHunter.git
+cd NanoHunter
+conda create --prefix ./conda_env
+conda activate ./conda_env
+conda install -c conda-forge -c bioconda python=3.8 --file conda_requirements.txt
+python setup.py install
 ```
 
-### <a name="conda"></a>Via pip
+<!-- ```
+conda create -n nanohunter python=3.8 nanohunter
+conda activate nanohunter
+``` -->
+
+### Via pip (not work yet)
 ```
 pip install nanohunter
 ```
 
-### <a name="source"></a>From source files
+### From source files
 ```
 git clone git@github.com:Xinglab/NanoHunter.git
 cd NanoHunter && pip install .
 ```
 
-##  <a name="consensus"></a>(Optional) Consensus calling for RCA single-cell long-read data with [TideHunter](https://github.com/yangao07/TideHunter)(≥1.5.4)
+## (Optional) Consensus calling for RCA single-cell long-read data with [TideHunter](https://github.com/yangao07/TideHunter)(≥1.5.4)
 ### Input
 * `rca_long_read.fq`: RCA long-read fasta/fastq file
 * `five_prime.fa`, `three_prime.fa`: 5' and 3' sequence of RCA library. If splint sequence was used, please split splint sequence into two halves and use them as 5' and 3' sequence. Note that both 5' and 3' sequence need to have orientation of 5'->3', i.e., 3' sequence need to be reverse-complement
@@ -60,10 +69,10 @@ TideHunter rca_long_read.fq \
            -o consensus.fa
 ```
 
-## <a name="bu_calling"></a> 1. Barcode & UMI calling
+## 1. Barcode & UMI calling
 NanoHunter identifies barcode and UMI from sorted alignment BAM file of single-cell long reads ***without*** using reference barcode from short-read data. 
 
-For RCA long reads, before barcode/UMI calling, consensus sequences need to be generated (see [above](#consensus)) and then mapped to reference genome.
+For RCA long reads, before barcode/UMI calling, consensus sequences need to be generated (see [above](#optional-consensus-calling-for-rca-single-cell-long-read-data-with-tidehunter≥154)) and then mapped to reference genome.
 ### 1.1 Input 
 * Required:
   * `long_read.sorted.bam`: sorted long-read BAM (recommend using [minimap2](https://github.com/lh3/minimap2))
@@ -92,21 +101,21 @@ nanohunter long_read.sorted.bam \
 * `ref_bc.tsv`: reference cell barcode list identified from long reads. Note that if cell barcode list was provided to NanoHunter, `ref_bc.tsv` file will not be generated
 * `high_qual_bc_umi.rank.tsv`: cell barcode list ranked by unique UMI count based on all high-quality long reads. Note that if cell barcode list was provided to NanoHunter, `high_qual_bc_umi.rank.tsv` file will not be generated
   
-Format of `bc_umi.tsv`:
+Example of `bc_umi.tsv`:
 
 | cell barcode | UMI | # reads | compatible transcript id | gene id | gene name | read names (separeted by \`,\`)|
 |-|-|-|-|-|-|-|
 | ATCACGACACTTTAGG | ATCACATCCATG | 3 | ENST00000407249, ENST00000341832 | ENSG00000248333 | CDK11B | 741aa2c2-5840-4a29-bd90-3bdcb71604ba, 05f8432a-7f7e-446d-a6d5-8ab9e4eb5102, 6bb13ee1-7397-435c-8840-aeb2a90cf4ab |
 
 
-## <a name="cell_clutering"></a>2. Cell clustering and annotating
+## 2. Cell clustering and annotating
 All the downstream single-cell long-read analysis rely on the cell type clustering result, which could be acomplished by running [Seurat](https://satijalab.org/seurat/) on the the gene expression matrix and annotating the cell clusters manually or based on known reference annotation like [Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
 
 For example, for human peripheral blood mononuclear cells (PBMC), the clustering and annotating result can be obtained by mapping to Azimuth human PBMC reference dataset. 
+<!-- (https://github.com/Xinglab/NanoHunter/tree/main/scripts_for_paper#run_azimuth.R) -->
+We provide the [R script](scripts_for_paper/README.md#run_azimuth_pbmcr) for human PBMC data. For data from other species/tissues, this needs to be done manually by users.
 
-We provide the [R script]([blob/main/scripts_for_paper/README.md#run_azimuth](https://github.com/Xinglab/NanoHunter/tree/main/scripts_for_paper#run_azimuth)) for human PBMC data. For data from other species/tissues, this needs to be done manually by users.
-
-## <a name="cell_splice"></a>3. Cell type-specific splicing analysis
+## 3. Cell type-specific splicing analysis
 NanoHunter performs ***pairwise comparison*** to identify differntially spliced genes/transcripts between each two cell types/clusters.
 ### 3.1 Input
 * Required
@@ -128,27 +137,27 @@ nh_cell_type_specific_splicing expression_matrix/transcript \
 * `*_cell_spliced_genes.tsv`: differentially spliced genes between 2 cell types. Gene FDR ≤0.05, max. delta ratio ≥0.05
 * `*_cell_spliced_transcripts.tsv`: differentially spliced transcripts between 2 cell types. Gene FDR ≤0.05, transcript p value ≤0.05, detal ratio ≥0.05
 
-Format of `*_cell_spliced_genes.tsv`:
+Example of `*_cell_spliced_genes.tsv`:
 
 | cell_type1| cell_type2|gene_id| gene_name| gene_fdr| max_delta_ratio| transcript_ids| cell1_counts| cell2_counts| cell1_ratios| cell2_ratios|
 |-|-|-|-|-|-|-|-|-|-|-|
 |Epithelial| Mesenchymal|ENSG00000026508| CD44| 7.96e-65| 0.68| ENST00000263398, ENST00000433892, ENST00000527326, ESPRESSO:chr11:443:2, ESPRESSO:chr11:443:3| 61.43,122.97, 20.0,23.41,13.63| 322.74,4.24,15.0,1.33-05,1.33e-05| 0.25,0.50,0.08,0.09,0.05| 0.94,0.01,0.04,3.89e-08,3.89e-08 |
 
-Format of `*_cell_spliced_transcripts.tsv`:
+Example of `*_cell_spliced_transcripts.tsv`:
 
 | cell_type1| cell_type2 | gene_id| gene_name| transcript_id| gene_fdr| transcript_p| delta_ratio| count1| count2| ratio1| ratio2|
 |-|-|-|-|-|-|-|-|-|-|-|-|
 | Epithelial| Mesenchymal| ENSG00000026508| CD44| ENST00000263398| 7.96e-65| 8.25e-73| 0.68| 61.43| 322.74| 0.25| 0.94|
 
 
-## <a name="allele_splice"></a>4. Allele-specific splicing analysis
+## 4. Allele-specific splicing analysis
 With additional whole-genome sequencing data, NanoHunter can identify allele-specific splicing within each cell type.
 The allele-specific splicing analysis mainly consists of three steps:
 1. Phase long reads with whatshap
 2. Identify allele-specific spliced genes/transcripts within each cell type
 3. Search for disease-associated GWAS SNPs from identified allele-specific spliced genes
 
-### <a name="whatshap"></a>4.1 Phase long reads with `whatshap`
+### 4.1 Phase long reads with `whatshap`
 * Input
   * `wgs_phased.vcf`: WGS phased VCF file, generated from WGS short-read data using [GATK](https://gatk.broadinstitute.org/hc/en-us) and [SHAPEIT](https://odelaneau.github.io/shapeit5/)
   * `ref.fa`: reference genome fasta file
@@ -166,10 +175,10 @@ whatshap haplotag wgs_phased.vcf bc_umi.bam \
   * `bc_umi_hap.bam`: BAM file with barcode/UMI and additional haplotype information
   * `hap_list.tsv`: tabular file containing haplotype information for barcode-called long reads
   
-### <a name="allele_splice_42"></a>4.2 Identifiy allele-specific splicing
+### 4.2 Identifiy allele-specific splicing
 * Input
   * `bc_umi.tsv`: tabular file with barcode/UMI/gene/transcript information, generated by NanoHunter
-  * `hap_list.tsv`: tabular file containing haplotype information, generated by [whatshap](https://whatshap.readthedocs.io/en/latest/index.html), see [above](#whatshap)
+  * `hap_list.tsv`: tabular file containing haplotype information, generated by [whatshap](https://whatshap.readthedocs.io/en/latest/index.html), see [above](#41-phase-long-reads-with-whatshap)
   * `bc_to_cell_type.tsv`: list of barcode and corresponding cell type/cluster, generated by [Seurat](https://satijalab.org/seurat/)/[Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html) 
 
 * Command
@@ -184,19 +193,19 @@ nh_allele_specific_splicing bc_umi.tsv \
   * `*_allele_spliced_genes.tsv`: allele-specific spliced genes. Gene FDR ≤0.05, max. delta ratio ≥0.05
   * `*_allele_spliced_transcripts.tsv`: allele-specific spliced transcripts. Gene FDR ≤0.05, transcript p value ≤0.05, delta ratio ≥0.05
   
-Format of `*_allele_spliced_genes.tsv`:
+Example of `*_allele_spliced_genes.tsv`:
 |cell_type| gene_id| gene_name| gene_fdr| transcripts| hap1_counts| hap2_counts| hap1_ratios| hap2_ratios|
 |-|-|-|-|-|-|-|-|-|
 |Mono| ENSG00000105383| CD33| 4.42e-07| ENST00000262262, ENST00000421133| 58,9| 24,41| 0.86,0.13| 0.36,0.63|
 
-Format of `*_allele_spliced_transcripts.tsv`:
+Example of `*_allele_spliced_transcripts.tsv`:
 |cell_type| transcript_id| transcript_p| gene_id| gene_name| gene_fdr| hap1_count| hap2_count| hap1_ratio| hap2_ratio|
 |-|-|-|-|-|-|-|-|-|-|
 |Mono| ENST00000262262| 3.58e-09| ENSG00000105383| CD33| 4.42e-07| 58| 24| 0.86| 0.36|
 
 ### 4.3 Identify disease-associated GWAS SNPs from allele-specific spliced genes
 * Input
-  * `*_allele_spliced_genes.tsv`: allele-specific spliced genes, generated by [nh_allele_specific_splicing](#allele_splice_32)
+  * `*_allele_spliced_genes.tsv`: allele-specific spliced genes, generated by [nh_allele_specific_splicing](#42-identifiy-allele-specific-splicing)
   * `wgs_phased.vcf`: WGS phased VCF file, generated from WGS short-read data using [GATK](https://gatk.broadinstitute.org/hc/en-us) and [SHAPEIT](https://odelaneau.github.io/shapeit5/)
   * `annotation.gtf`: annotation GTF file
   * `gwas_catalog_efo.tsv`: GWAS catalog database with EFO term
@@ -216,19 +225,19 @@ nh_gene_with_gwas_disease_snp -g allele_splice_gene_detailed.tsv \
   <!-- * `*_allele_spliced_gene_gwas.tsv`: GWAS disease-associated genes -->
   * `*_allele_spliced_gene_gwas_efo_term.tsv`: GWAS diesease-associated genes, with traits described in [EFO](https://www.ebi.ac.uk/efo/) term
   <!-- * `*_allele_spliced_gene_gwas_detailed.tsv`: GWAS and LD information of all SNPs -->
-  * `*_allele_spliced_gene_gwas_ld`: directory of LD scores and GWAS traits for all SNPs, each gene has a separated `.ld` file
+  * `*_allele_spliced_gene_gwas_ld`: directory of LD scores and GWAS traits for all SNPs, each gene has one separate `.ld` file
   
 <!-- Format of `*_allele_splice_gwas_detailed.tsv`:
-|snp_id| gene_name| gene_id| haplotype| gwas_trait| gwas_parent_term| ld_trait| ld_parent_term| ld_snps| ld_scores|
+|snp_id| gene_name| gene_id| haplotype| gwas_trait| gwas_efo_term| ld_trait| ld_efo_term| ld_snps| ld_scores|
 |-|-|-|-|-|-|-|-|-|-|
 |rs3865444| CD33| ENSG00000105383| H2| Alzheimer disease| Neurological disorder| NA, Alzheimer disease, late-onset Alzheimers disease, NA, NA| NA, Neurological disorder,Neurological disorder, NA, NA| rs12459419, rs7245846, rs1354106, rs34813869, rs33978622| 1.0,0.89,0.88,0.88,0.96| -->
 
-Format of `*_allele_splice_gwas_efo_term.tsv`:
+Example of `*_allele_splice_gwas_efo_term.tsv`:
 |gene_name| gene_id| Cancer| Immune system disorder| Neurological disorder| Cardiovascular disease| Digestive system disorder| Metabolic disorder| Response to drug| Other disease|
 |-|-|-|-|-|-|-|-|-|-|
 |CD33| ENSG00000105383| False| False | True | False| False| False| False| False|
 
-Format of `*_allele_spliced_gene_gwas_ld/gene.ld`:
-|snp_id| rs1799886| rs1799887| rs3114480| rs706| rs11327| haplotype| chrom| pos| type| gwas_trait| gwas_trait_parent_term| gwas_pvalue|
+Example of `*_allele_spliced_gene_gwas_ld/gene.ld`:
+|snp_id| rs1799886| rs1799887| rs3114480| rs706| rs11327| haplotype| chrom| pos| type| gwas_trait| gwas_trait_efo_term| gwas_pvalue|
 |-|-|-|-|-|-|-|-|-|-|-|-|-|
 |rs1799886| 0| 0| 0.47| 0.24| 0.24| H1| chr7| 142800839| gwas| cystic fibrosis associated meconium ileus| Digestive system disorder| 2e-07|

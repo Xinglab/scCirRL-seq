@@ -1,6 +1,6 @@
 ## Scripts used in NanoHunter paper
 
-### <a name="run_azimuth"></a>run_azimuth_PBMC.R
+### run_azimuth_PBMC.R
 * Dependent libraries
   * Seurat
   * Azimuth
