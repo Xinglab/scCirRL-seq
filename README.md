@@ -213,7 +213,7 @@ Example of `*_allele_spliced_transcripts.tsv`:
 
 * Command
 ```
-nh_gene_with_gwas_disease_snp -g allele_splice_gene_detailed.tsv \
+nh_gene_with_gwas_disease_snp -g allele_spliced_genes.tsv \
                               annotation.gtf       \
                               wgs_phased.vcf       \
                               gwas_catalog_efo.tsv \

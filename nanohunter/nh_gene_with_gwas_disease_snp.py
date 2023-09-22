@@ -316,10 +316,10 @@ def get_gene_to_coor(gtf_fn, all_genes=[]):
             chrom, start, end, strand = ele[0], int(ele[3]), int(ele[4]), ele[6]
             gene_id_to_name[gene_id] = gene_name
             gene_to_coor[gene_id] = (chrom, 
-                                        min(gene_to_coor[gene_id][1], start), 
-                                        max(gene_to_coor[gene_id][2], end), 
-                                        strand)
-    return gene_to_coor
+                                     min(gene_to_coor[gene_id][1], start), 
+                                     max(gene_to_coor[gene_id][2], end), 
+                                     strand)
+    return gene_id_to_name, gene_to_coor
 
 snp_id_pos_table = 'tkg_p3v5a_hg38'
 def get_snp_id_from_ld_table(ld_con, chrom, pos):
@@ -539,22 +539,32 @@ def output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, 
                 #         snp, gene_name, gene_id, hap, gwas_trait, gwas_trait_parent, \
                 #         ','.join(ld_traits), ','.join(ld_parents), ','.join(ld_snps), ','.join([str(score) for score in ld_scores])))
 
-# gene_id: gene_name
+
 def get_gene_list(gene_list_file):
-    gene_id_to_name = dict()
-    for gene_list_fn in gene_list_file.split(','):
-        with open(gene_list_fn) as fp:
-            for line in fp:
-                ele = line.rsplit()
-                gene_id_to_name[ele[0]] = ele[1]
-    return gene_id_to_name
+    all_genes = dict()
+    header_idx = dict()
+    with open(gene_list_file) as fp:
+        header = True
+        for line in fp:
+            ele = line.rsplit('\t')
+            if header:
+                header = False
+                header_idx = {ele[i].upper(): i for i in range(len(ele))}
+                continue
+            for h1 in ['GENE', 'GENE_ID', 'GENEID', 'GENE_NAME', 'GENENAME']:
+                if h1 in header_idx:
+                    all_genes[ele[header_idx[h1]]] = True
+                    break
+    return list(all_genes.keys())
 
+# if no gene_list_fn provided, collect all genes from GTF file
+# 1. collect gene_id to gene_name
+# 2. collect gene_id to gene_coordinate
 def get_gene_infor(gene_list_fn, gtf_fn):
+    all_genes = []
     if gene_list_fn:
-        all_gene_id_to_name = get_gene_list(gene_list_fn)
-
-    else:
-        all_gene_id_to_name, all_gene_id_to_coor = get_gene_to_coor(gtf_fn)
+        all_genes = get_gene_list(gene_list_fn)
+    all_gene_id_to_name, all_gene_id_to_coor = get_gene_to_coor(gtf_fn, all_genes)
     return all_gene_id_to_name, all_gene_id_to_coor
     
 def parser_argv():
@@ -597,6 +607,7 @@ def main():
     as_gwas_ld_out_dir = out_pre + '_allele_spliced_gene_gwas_ld' # directory, each gene has a separate file for all SNPs
 
     all_gene_id_to_name, all_gene_id_to_coor = get_gene_infor(gene_list_fn, gtf_fn)
+    # print(all_gene_id_to_coor)
     chr_to_all_gwas_snp_trait = parse_gwas_file(gwas_fn) #, all_gene_names) # chr -> snp -> trait_info
     all_gene_to_snps = collect_gene_snps(all_gene_id_to_name, all_gene_id_to_coor, vcf_fn, ld_duckdb_fn, sample_name) # chr -> gene_name -> snp_id -> snp_info
     
