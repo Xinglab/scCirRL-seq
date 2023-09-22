@@ -6,11 +6,15 @@ from nanohunter.__init__ import __scripts__
 def read(path):
     with open(path, "r") as f:
         return f.read()
+def read_list(path):
+    return read(path).splitlines()
 
 entrypoints = ["{}={}.main:main".format(__module__, __module__)]
 entrypoints.extend(["{}={}.{}:main".format(script, __module__, script) for script in __scripts__])
 
 long_description = read("README.md")
+installrequires = read_list("pypi_requirements.txt")
+setuprequires = ["setuptools", "wheel", "twine"]
 
 setup(
     name=__program__,
@@ -28,8 +32,8 @@ setup(
     # packages=find_packages(include=[__module__, "{}.*".format(__module__)]),
     include_package_data=True,
     python_requires=">=3.8",
-    install_requires=['edlib', 'pysam', 'kneed'],
-    setup_requires=['edlib', 'pysam', 'kneed'],
+    install_requires=installrequires,
+    setup_requires=setuprequires,
     url=__url__,
     keywords=[__program__],
     entry_points={

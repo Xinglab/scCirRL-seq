@@ -14,7 +14,7 @@ __scripts__ = ['nh_cell_type_specific_splicing',
                'nh_gene_with_gwas_disease_snp',
                'nh_make_expression_matrix',
                'nh_split_bam_by_cluster']
-__version__ = '1.0.0'
+__version__ = '1.0.0.beta3'
 __author__  = 'Yan Gao'
 __email__   = 'gaoy1@chop.edu'
 __description__ = 'long-read single-cell RNA-seq analysis'
