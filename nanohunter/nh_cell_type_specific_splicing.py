@@ -316,8 +316,8 @@ def cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, gene_fp, tra
 def cluster_wise_differential_splice(gene_trans_clu_cnt, all_cell_types, 
                                      out_prefix, gene_list, trans_min_cnt, min_trans_per_gene):
     pairwise_cell_types = list(itertools.combinations(all_cell_types, 2))
-    with open(f'{out_prefix}_diff_splice_genes.tsv', 'w') as gene_fp, \
-         open(f'{out_prefix}_diff_splice_transcripts.tsv', 'w') as trans_fp:
+    with open(f'{out_prefix}_cell_specific_spliced_genes.tsv', 'w') as gene_fp, \
+         open(f'{out_prefix}_cell_specific_spliced_transcripts.tsv', 'w') as trans_fp:
         # gene_trans_clu_cnt[gene][trans][clu] += cnt
         for gene, trans_clu_cnt in gene_trans_clu_cnt.items():
             clu_to_cnts = dd(lambda: 0.0) 

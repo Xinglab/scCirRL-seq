@@ -495,14 +495,14 @@ def output_gwas(all_gene_id_to_name, gene_to_gwas_traits, gene_to_gwas_parent_tr
             gwas_parent_fp.write('\t'.join([gene, all_gene_name_to_id[gene]])+'\t')
             gwas_parent_fp.write('\t'.join([str(gene_to_gwas_parent_traits[gene][parent]) for parent in all_parents]) + '\n')
 
-def output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_detail_out, as_gwas_ld_out_dir, ld_duckdb_fn):
+def output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_ld_out_dir, ld_duckdb_fn):
     if not os.path.exists(as_gwas_ld_out_dir):
         os.makedirs(as_gwas_ld_out_dir)
     ld_header = ['haplotype', 'chrom', 'pos', 'type', 'gwas_trait', 'gwas_trait_parent_term', 'gwas_pvalue']
     gwas_detail_header = ['snp_id', 'gene_name', 'gene_id', 'haplotype', 'gwas_trait', 'gwas_parent_term', 'ld_trait', 'ld_parent_term', 'ld_snps', 'ld_scores']
     all_gene_name_to_id = {v: k for k, v in all_gene_id_to_name.items()}
-    with db.connect(ld_duckdb_fn, read_only=True) as ld_con, open(as_gwas_detail_out, 'w') as gwas_detail_fp:
-        gwas_detail_fp.write('{}\n'.format('\t'.join(gwas_detail_header)))
+    with db.connect(ld_duckdb_fn, read_only=True) as ld_con: #, open(as_gwas_detail_out, 'w') as gwas_detail_fp:
+        # gwas_detail_fp.write('{}\n'.format('\t'.join(gwas_detail_header)))
         for chrom, gene_to_snps in all_gene_to_snps.items():
             gwas_snp_to_trait = chr_to_all_gwas_snp_trait[chrom]
             for gene_name, all_snps in gene_to_snps.items():
@@ -529,15 +529,15 @@ def output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, 
                         gwas_pvalue = snp_info.get_gwas_pval(gwas_snp_to_trait)
                         ld_fp.write('\t'.join([hap, chrom, str(pos), snp_type, gwas_trait, gwas_trait_parent, str(gwas_pvalue)]) + '\n')
                 # write gwas details for each snp
-                for snp in snps:
-                    snp_info = all_snps[snp]
-                    hap = snp_info.get_hap()
-                    gwas_trait = snp_info.get_gwas_trait(gwas_snp_to_trait)[0]
-                    gwas_trait_parent = snp_info.get_gwas_trait_parent(gwas_snp_to_trait)[0]
-                    ld_snps, ld_traits, ld_scores, ld_parents = snp_info.get_all_lds(gwas_snp_to_trait)
-                    gwas_detail_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
-                        snp, gene_name, gene_id, hap, gwas_trait, gwas_trait_parent, \
-                        ','.join(ld_traits), ','.join(ld_parents), ','.join(ld_snps), ','.join([str(score) for score in ld_scores])))
+                # for snp in snps:
+                #     snp_info = all_snps[snp]
+                #     hap = snp_info.get_hap()
+                #     gwas_trait = snp_info.get_gwas_trait(gwas_snp_to_trait)[0]
+                #     gwas_trait_parent = snp_info.get_gwas_trait_parent(gwas_snp_to_trait)[0]
+                #     ld_snps, ld_traits, ld_scores, ld_parents = snp_info.get_all_lds(gwas_snp_to_trait)
+                #     gwas_detail_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
+                #         snp, gene_name, gene_id, hap, gwas_trait, gwas_trait_parent, \
+                #         ','.join(ld_traits), ','.join(ld_parents), ','.join(ld_snps), ','.join([str(score) for score in ld_scores])))
 
 # gene_id: gene_name
 def get_gene_list(gene_list_file):
@@ -591,14 +591,12 @@ def main():
         args.gene_list, args.gtf, args.vcf, args.gwas, args.ld_duckdb, args.sample_name
     out_pre = args.out_pre
 
-    as_gwas_basic_out = out_pre + '_as_gwas.tsv'
-    as_gwas_parent_out = out_pre + '_as_gwas_parent_term.tsv'
-    as_gwas_detail_out = out_pre + '_as_gwas_detail.tsv'
-    as_gwas_ld_out_dir = out_pre + '_as_gwas_ld' # directory, each gene has a separate file for LD SNPs
+    as_gwas_basic_out = out_pre + '_allele_spliced_gene_gwas.tsv'
+    as_gwas_basic_efo_out = out_pre + '_allele_spliced_gene_gwas_efo_term.tsv'
+    # as_gwas_detail_out = out_pre + '_allele_spliced_gene_gwas_detailed.tsv'
+    as_gwas_ld_out_dir = out_pre + '_allele_spliced_gene_gwas_ld' # directory, each gene has a separate file for all SNPs
 
     all_gene_id_to_name, all_gene_id_to_coor = get_gene_infor(gene_list_fn, gtf_fn)
-    # all_gene_names = list(all_gene_id_to_name.values())
-    # gene_id_to_coor = get_gene_to_coor(gtf_fn) # collect gene coordinates
     chr_to_all_gwas_snp_trait = parse_gwas_file(gwas_fn) #, all_gene_names) # chr -> snp -> trait_info
     all_gene_to_snps = collect_gene_snps(all_gene_id_to_name, all_gene_id_to_coor, vcf_fn, ld_duckdb_fn, sample_name) # chr -> gene_name -> snp_id -> snp_info
     
@@ -606,8 +604,9 @@ def main():
     gene_to_gwas_traits, gene_to_gwas_parent_traits = collect_gene_to_gwas_traits(all_gene_to_snps, chr_to_all_gwas_snp_trait, ld_duckdb_fn)
 
     # write to file
-    output_gwas(all_gene_id_to_name, gene_to_gwas_traits, gene_to_gwas_parent_traits, as_gwas_basic_out, as_gwas_parent_out)
-    output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_detail_out, as_gwas_ld_out_dir, ld_duckdb_fn)
+    output_gwas(all_gene_id_to_name, gene_to_gwas_traits, gene_to_gwas_parent_traits, as_gwas_basic_out, as_gwas_basic_efo_out)
+    # output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_detail_out, as_gwas_ld_out_dir, ld_duckdb_fn)
+    output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_ld_out_dir, ld_duckdb_fn)
 
 
 if __name__ == '__main__':

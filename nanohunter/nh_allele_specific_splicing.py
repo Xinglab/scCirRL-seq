@@ -112,7 +112,7 @@ def get_hap(qnames, read_to_hap, trans_id, gene_name, diff_hap_fp):
     else:  # 1 hap
         return list(hap_to_read_cnt.keys())[0]
 
-def get_cluster_wise_gene_to_trans_reads(nhs_bu_fn, bc_to_cluster, read_to_hap, clu_stat_out, diff_hap_out):
+def get_cluster_wise_gene_to_trans_reads(nhs_bu_fn, bc_to_cluster, read_to_hap):
     cluster_wise_gene_to_trans_reads = dd(lambda: dd(lambda: dd(lambda: dd(lambda: 0))))  # {bc: {gene: {trans: {hap: cnt}}}}
     gene_id_to_name = dict()
     cluster_wise_stats = dd(lambda: dd(lambda: dd(lambda: 0)))
@@ -380,20 +380,16 @@ def main():
 
     nhs_bu_fn, bc_to_clu_tsv, hap_list, out_pre = args.nh_bu, args.bc_cluster, args.hap_list, args.out_pre
 
-    clu_stat_out = out_pre + '_clu_stat.tsv'
-    assg_detailed_out = out_pre + '_as_gene_detailed.tsv'
-    asst_detailed_out = out_pre + '_as_transcript_detailed.tsv'
-    aseg_basic_out = out_pre + '_ae_gene.tsv'
-    assg_basic_out = out_pre + '_as_gene.tsv'
-    asst_basic_out = out_pre + '_as_transcript.tsv'
-    diff_hap_out = out_pre + '_diff_hap.tsv'
+    assg_detailed_out = out_pre + '_allele_spliced_gene.tsv'
+    asst_detailed_out = out_pre + '_allele_spliced_transcript.tsv'
+    assg_basic_out = out_pre + '_allele_spliced_genes_basic.tsv'
+    asst_basic_out = out_pre + '_allele_spliced_transcripts_basic.tsv'
+    aseg_basic_out = out_pre + '_allele_expressed_gene.tsv'
 
     bc_to_cluster = parse_bc_cell_list(bc_to_clu_tsv)
     all_cell_types = set(bc_to_cluster.values())
     reads_to_hap = get_reads_to_hap(hap_list)
-    cluster_wise_gene_to_trans_reads, gene_id_to_name = get_cluster_wise_gene_to_trans_reads(nhs_bu_fn, bc_to_cluster, 
-                                                                                             reads_to_hap, clu_stat_out, 
-                                                                                             diff_hap_out)
+    cluster_wise_gene_to_trans_reads, gene_id_to_name = get_cluster_wise_gene_to_trans_reads(nhs_bu_fn, bc_to_cluster, reads_to_hap)
     # allele-specific spliced gene/transcript
     gene_to_allele_specific = cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads, 
                                                                     gene_id_to_name, 
