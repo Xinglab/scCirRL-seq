@@ -12,7 +12,7 @@ from .seq_utils import _bc_max_ed, _umi_max_ed, _bc_len, _umi_len, get_ref_barco
 from .collect_candidate_bc import collect_cand_ref_bc
 from .assign_bc import assign_ref_bc
 from .parse_quant_file import get_read_to_trans, get_trans_to_gene
-from .make_expression_matrix import make_10X_matrix
+from .nh_make_expression_matrix import make_10X_matrix
 
 
 def parser_argv():

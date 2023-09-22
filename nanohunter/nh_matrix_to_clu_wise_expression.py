@@ -2,7 +2,7 @@ import sys
 import os
 import gzip
 from collections import defaultdict as dd
-from cluster_wise_differential_splicing import *
+from nh_cell_type_specific_splicing import *
 
 def write_gene_trans_to_clu_cnt(gene_trans_clu_cnt, all_clus, out_prefix):
     gene_out, trans_out = out_prefix + '.clu_wise_gene_cnt.tsv', out_prefix + '.clu_wise_trans_cnt.tsv'

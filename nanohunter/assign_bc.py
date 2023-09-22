@@ -212,7 +212,7 @@ def sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_ma
     ut.err_format_time(__name__, "Assigning barcode & UMI ...")
     n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
     with open(out_bu_fn, 'w') as out_fp, ps.AlignmentFile(in_sam_fn) as in_bam:
-        out_fp.write('#BC\tUMI\tReadCount\tTranscript\tGeneID\tGeneName\tReadNames\n'')
+        out_fp.write('#BC\tUMI\tReadCount\tTranscript\tGeneID\tGeneName\tReadNames\n')
         bam_header_dict = in_bam.header.to_dict()
         nhs_append_pg_dict = {'ID': __program__, 'PN': __program__, 'VN': __version__, 'CL': __cmd__}
         if 'PG' in bam_header_dict:

@@ -17,7 +17,7 @@ __scripts__ = ['nh_cell_type_specific_splicing',
 __version__ = '1.0.0'
 __author__  = 'Yan Gao'
 __email__   = 'gaoy1@chop.edu'
-__description__ = 'Cell barocoding calling using only single-cell long-read data'
-__url__ = 'https://github.com/yangao07/NanoHunter-self'
+__description__ = 'long-read single-cell RNA-seq analysis'
+__url__ = 'https://github.com/Xinglab/NanoHunter'
 __cmd__     = ' '.join(sys.argv)
 
