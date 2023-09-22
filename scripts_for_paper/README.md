@@ -1,6 +1,6 @@
 ## Scripts used in NanoHunter paper
 
-### run_azimuth_PBMC.R
+### [run_azimuth_PBMC.R](run_azimuth_PBMC.R)
 * Dependent libraries
   * Seurat
   * Azimuth
@@ -20,4 +20,4 @@ Rscript run_azimuth_PBMC.R expression_matrix/gene/ sample_name output_dir
   * `*_zaimuth_umap.l1.pdf`: UMAP plot based on level 1 cell type annotation
   * `*_zaimuth_umap.l2.pdf`: UMAP plot based on level 2 cell type annotation
  
-* Note: for allele-specific splicing analysis within each cell type, please use level 2 cell type classification for better data coverage.
+* Note: for allele-specific splicing analysis within each cell type, please use level 2 cell type classification for higher data coverage.
