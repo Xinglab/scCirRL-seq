@@ -17,7 +17,7 @@ Rscript run_azimuth_PBMC.R expression_matrix/gene/ sample_name output_dir
 * Output
   * `*_azimuth_bc_to_cell_type_l1.tsv`: cell barcode and corresponding cell type at level 1
   * `*_azimuth_bc_to_cell_type_l2.tsv`: cell barcode and corresponding cell type at level 2, with more detailed classificaton than level 1
-  * `*_zaimuth_umap.l1.pdf`: UMAP plot based on level 1 cell type annotation
-  * `*_zaimuth_umap.l2.pdf`: UMAP plot based on level 2 cell type annotation
+  * `*_zaimuth_umap_l1.pdf`: UMAP plot based on level 1 cell type annotation
+  * `*_zaimuth_umap_l2.pdf`: UMAP plot based on level 2 cell type annotation
  
-* Note: for allele-specific splicing analysis within each cell type, please use level 2 cell type classification for higher data coverage.
+* Note: for allele-specific splicing analysis within each cell type, please use level 1 cell type classification for higher data coverage.

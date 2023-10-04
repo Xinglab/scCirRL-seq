@@ -391,6 +391,8 @@ def get_ld_scores(snps1, snps2, ld_con, ld_table_prefix, ld_populations, chrom, 
             if r2 > ld_scores[snp_a][snp_b]:
                 ld_scores[snp_a][snp_b] = r2
                 ld_scores[snp_b][snp_a] = r2
+                ld_scores[snp_a][snp_a] = 1
+                ld_scores[snp_b][snp_b] = 1
     return ld_scores
 
 def set_gwas_ld(snp_to_snp_info, gwas_snps, chrom, ld_populations, ld_table_prefix, ld_threshold, ld_con):

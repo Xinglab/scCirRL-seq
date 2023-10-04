@@ -41,7 +41,7 @@ make_azimuth_seurat_obj <- function(in_mtx_dir, name) {
 pbmc <- make_azimuth_seurat_obj(data_dir, name)
 
 # umap plot
-l1_umap_plot_file <- paste(out_dir, "/", name, "_azimuth_umap.l1.pdf", sep = "")
+l1_umap_plot_file <- paste(out_dir, "/", name, "_azimuth_umap_l1.pdf", sep = "")
 pdf(l1_umap_plot_file, width = 7, height = 7)
 DimPlot(pbmc, group.by = "predicted.celltype.l1", label = TRUE, label.size = 6, pt.size = 0.5) + 
         NoLegend() +
@@ -49,7 +49,7 @@ DimPlot(pbmc, group.by = "predicted.celltype.l1", label = TRUE, label.size = 6, 
             axis.text=element_text(size = 18, family = "sans"),
             plot.title = element_blank())
 dev.off()
-l2_umap_plot_file <- paste(out_dir, "/", name, "_azimuth_umap.l2.pdf", sep = "")
+l2_umap_plot_file <- paste(out_dir, "/", name, "_azimuth_umap_l2.pdf", sep = "")
 pdf(l2_umap_plot_file, width = 7, height = 7)
 DimPlot(pbmc, group.by = "predicted.celltype.l2", label = TRUE, label.size = 6, pt.size = 0.5) + 
         NoLegend() +

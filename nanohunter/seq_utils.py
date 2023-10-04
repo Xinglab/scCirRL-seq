@@ -28,22 +28,14 @@ _bc_max_ed = 2
 _umi_max_ed = 1
 _max_clip_len = 200
 
-# import pyabpoa as pa
-# poa_aln = pa.msa_aligner()
-
-
-# mp_chunk_region_size = 10000
-
 
 comp_seq_dict = dd(lambda: 'N')
 comp_seq_dict.update({'A':'T', 'a':'T', 'C':'G', 'c':'G', 'G':'C', 'g':'C', 'T':'A', 't':'A', 'U':'A', 'u':'A'})
-
 
 def revcomp(seq):
     rev_seq = seq[::-1]
     rev_comp_seq = ''.join([comp_seq_dict[r] for r in rev_seq])
     return rev_comp_seq
-
 
 def nh_init():
     global n_perfect_reads
@@ -67,22 +59,6 @@ def nh_init():
     # nh_read_to_ref_bc_umi = dict()
     # nh_perfect_bc_to_umi = dict()
     # nh_assigned_reads = dict()
-
-
-# def get_mp_fetch_set(in_sam_fn, chunk_region_size):
-#     fetch_set = []
-#     with ps.AlignmentFile(in_sam_fn) as in_sam:
-#         header = in_sam.header
-#         for ref in header.references:
-#             tot_len = header.get_reference_length(ref)
-#             for i in range(int((tot_len-1)/chunk_region_size)+1):
-#                 start = i * chunk_region_size
-#                 end = (i+1) * chunk_region_size
-#                 if end > tot_len:
-#                     end = tot_len
-#                 fetch_set.append((ref, start, end))
-#     return fetch_set
-
 
 def get_mp_fetch_set(in_sam_fn):
     ut.err_format_time(__name__, "Collecting BAM fetch regions ...")
@@ -112,7 +88,6 @@ def get_mp_fetch_set(in_sam_fn):
     ut.err_format_time(__name__, "Collecting BAM fetch regions done! ({} regions)".format(len(fetch_region_set)))
     return fetch_region_set
 
-
 def is_rev_strand(r=ps.AlignedSegment()):
     if r.has_tag('ts'):
         ts = 1 if r.get_tag('ts') == '+' else -1
@@ -138,7 +113,6 @@ def is_rev_strand(r=ps.AlignedSegment()):
             return False
     return None
 
-
 def get_cDNAseq(r, bc, umi):
     extra_len = 50
     cand_seq = ''
@@ -159,17 +133,6 @@ def get_cDNAseq(r, bc, umi):
     cDNA_seq = whole_seq[pT_start+10:]
     return cDNA_seq
 
-
-# def get_cons_seq(seqs):
-#     if len(seqs) < 1:
-#         return ''
-#     elif len(seqs) <= 2:
-#         return seqs[0]
-#     else:
-#         res = poa_aln.msa(seqs, out_cons=True, out_msa=False)
-#         return res.cons_seq[0]
-
-
 def get_cand_seq(r=ps.AlignedSegment()):
     extra_len = 50
     cand_seq = ''
@@ -181,7 +144,6 @@ def get_cand_seq(r=ps.AlignedSegment()):
     else:  # polyA
         cand_seq = revcomp(r.query_sequence[-r.cigar[-1][1]-extra_len:])
     return cand_seq
-
 
 # 1. 5' ada exists and no mis/indel
 # 2. polyA/polyT & ts & strand match
@@ -225,7 +187,6 @@ def get_confident_cDNA_seq(r):
             cDNA_seq = whole_seq[end+10:]
     return cDNA_seq
 
-
 def get_bu_from_seq(r, bc_len, umi_len):
     bc, umi, bu = '', '', ''
     is_perfect = False
@@ -251,7 +212,6 @@ def get_bu_from_seq(r, bc_len, umi_len):
     else:
         return bc, umi, bu, is_perfect
 
-
 def get_min_ed(seq, seq_set):
     min_ed = len(seq)
     for s in seq_set:
@@ -259,7 +219,6 @@ def get_min_ed(seq, seq_set):
         if res['editDistance'] < min_ed:
             min_ed = res['editDistance']
     return min_ed
-
 
 def get_matched_bu(cand_bcs, bu, locs, bc_len, bc_max_ed, umi_len):
     bcs = dict()
@@ -274,7 +233,6 @@ def get_matched_bu(cand_bcs, bu, locs, bc_len, bc_max_ed, umi_len):
             if len(umi) == umi_len:
                 bus.append((bc, umi))
     return bus
-
 
 def get_ref_barcodes(list_fn, bc_len):
     ref_bcs = []

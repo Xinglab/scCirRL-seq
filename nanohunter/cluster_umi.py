@@ -7,16 +7,6 @@ import multiprocessing as mp
 from . import seq_utils as su
 from . import utils as ut
 
-
-_5_ada = su._5_ada  # 'CTACACGACGCTCTTCCGATCT'
-_3_ada = su._3_ada  # 'CCCATGTACTCTGCGTTGATACCACTGCTT'
-bc_len = su._bc_len  # 16
-umi_len = su._umi_len  # 12
-bu_len = su._bu_len  # 28
-ed_ratio = su._ed_ratio  # 0.3
-bc_max_ed = su._bc_max_ed  # 2
-umi_max_ed = su._umi_max_ed  # 1
-max_clip_len = su._max_clip_len  # 200
 NULL_node_id = -1
 
 
@@ -40,7 +30,7 @@ class UMIDirectionalNetworkNode:
 # UMI deduplication criteria:
 # 1. ED < T (2)
 # 2. overlapping cmpt_trans
-def search_for_umi_from_node(umi_graph_id_dict, node_id):
+def search_for_umi_from_node(umi_graph_id_dict, node_id, umi_max_ed):
     node = umi_graph_id_dict[node_id]
     umi = node.umi
     min_ed = len(umi)
@@ -110,7 +100,7 @@ def get_umi_trans(umi, umi_reads, all_read_to_trans):
         return {','.join(all_reads): intersection_trans}
 
 
-def build_umi_network_graph(umi_to_reads, perfect_umi, read_to_trans):
+def build_umi_network_graph(umi_to_reads, perfect_umi, read_to_trans, umi_max_ed):
     umi_graph_id_dict = dict()
     # sort by read count and sort by if umi/read is perferct_bc_umi
     umi_to_reads = dict(sorted(umi_to_reads.items(), key=lambda d: (-len(d[1]), d[0] not in perfect_umi)))
@@ -127,7 +117,7 @@ def build_umi_network_graph(umi_to_reads, perfect_umi, read_to_trans):
 
             umi_graph_id_dict[node_id] = node
             # search for from_node
-            from_id = search_for_umi_from_node(umi_graph_id_dict, node_id)
+            from_id = search_for_umi_from_node(umi_graph_id_dict, node_id, umi_max_ed)
             if from_id != NULL_node_id:
                 from_node = umi_graph_id_dict[from_id]
                 node.top_id = from_node.top_id  # XXX top_id: perfect_bc_umi with a higher read count XXX
@@ -152,7 +142,7 @@ def get_cluster_reads(top_node, umi_network_graph):
 
 
 # output NA for reads without compatible isoforms
-def umi_clustering(read_to_trans, bu_res):
+def umi_clustering(read_to_trans, bu_res, umi_max_ed):
     if len(bu_res) == 0:
         return []
     umi_cluster_res = []
@@ -167,7 +157,7 @@ def umi_clustering(read_to_trans, bu_res):
     for bc in bc_to_umi_reads:
         # if bc == 'TTGTGGATCATTCACT':
             # print('ok')
-        umi_network_graph = build_umi_network_graph(bc_to_umi_reads[bc], perfect_bc_to_umi[bc], read_to_trans)
+        umi_network_graph = build_umi_network_graph(bc_to_umi_reads[bc], perfect_bc_to_umi[bc], read_to_trans, umi_max_ed)
         for node_id, node in umi_network_graph.items():
             if node.top_id == NULL_node_id:
                 ut.err_fatal_format_time(__name__, 'NULL top id: {}\n'.format(node.umi))

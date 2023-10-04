@@ -238,6 +238,6 @@ Example of `*_allele_splice_gwas_efo_term.tsv`:
 |CD33| ENSG00000105383| False| False | True | False| False| False| False| False|
 
 Example of `*_allele_spliced_gene_gwas_ld/gene.ld`:
-|snp_id| rs1799886| rs1799887| rs3114480| rs706| rs11327| haplotype| chrom| pos| type| gwas_trait| gwas_trait_efo_term| gwas_pvalue|
-|-|-|-|-|-|-|-|-|-|-|-|-|-|
-|rs1799886| 0| 0| 0.47| 0.24| 0.24| H1| chr7| 142800839| gwas| cystic fibrosis associated meconium ileus| Digestive system disorder| 2e-07|
+|snp_id| rs3865444| rs2459141| rs12459419| rs2455069| rs7245846| rs33978622| rs34813869| rs1354106| haplotype| chrom| pos| type| gwas_trait| gwas_trait_efo_term| gwas_pvalue|
+|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
+|rs3865444| 1.0| 0.326844| 1.0| 0.327703| 0.891224| 0.967195| 0.887773| 0.881092| H2| chr19| 51224706| gwas| Alzheimer disease| Neurological disorder| 2e-09

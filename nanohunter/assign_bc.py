@@ -1,8 +1,6 @@
 import edlib as ed
 import sys
 import pysam as ps
-import multiprocessing as mp
-from multiprocessing import Pool
 
 from . import utils as ut
 from . import seq_utils as su
@@ -12,14 +10,7 @@ from .__init__ import __program__
 from .__init__ import __cmd__
 
 
-_5_ada = su._5_ada  # 'CTACACGACGCTCTTCCGATCT'
-_3_ada = su._3_ada  # 'CCCATGTACTCTGCGTTGATACCACTGCTT'
-_bc_len = su._bc_len  # 16
-_umi_len = su._umi_len  # 12
-_bu_len = su._bu_len  # 28
 ed_ratio = su._ed_ratio  # 0.3
-_bc_max_ed = su._bc_max_ed  # 2
-_umi_max_ed = su._umi_max_ed  # 1
 max_clip_len = su._max_clip_len  # 200
 
 debug_qname = 'd103d335-9beb-4a7c-8f9c-8081f3095961_rep0_2.7'  #
@@ -71,105 +62,7 @@ def get_cmpt_genes(cmpt_trans, trans_to_gene_id_name):
         gene_names = {'NA'}
     return gene_ids, gene_names
 
-
-def mp_assign_ref_bc1(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, mp_res_q, in_sam_fn, read_to_trans, bc_len, bc_max_ed, umi_len):
-    # out_rs = []
-    for mp_fetch_set1 in mp_fetch_set:
-        bu_res = []
-        umi_cluster_res = []
-        contig, start, end = mp_fetch_set1
-        sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
-        # with ps.AlignmentFile(in_sam_fn) as in_sam,  open('{}.txt'.format(mp.current_process().name), 'a') as err_fp:
-        with ps.AlignmentFile(in_sam_fn) as in_sam:
-            for r in in_sam.fetch(contig, start, end):
-                if r.is_unmapped or r.is_supplementary or r.is_secondary:
-                    continue
-                if (r.cigar[0][0] == ps.CSOFT_CLIP and r.cigar[0][1]) > max_clip_len or (r.cigar[-1][0] == ps.CSOFT_CLIP and r.cigar[-1][1] > max_clip_len):
-                    continue
-                qname = r.query_name
-                # if qname == debug_qname:
-                    # print('OK')
-                # assign bc/umi for each read
-                ref_bc, umi, is_perfect, is_exact = search_for_matched_ref_bc(r, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len)
-                if ref_bc and umi:
-                    if is_perfect:
-                        if is_exact: sub_n_perfect_in_ref_reads += 1
-                        else: sub_n_perfect_uniq_to_ref_reads += 1
-                    else:
-                        if is_exact: sub_n_imperfect_in_ref_reads += 1
-                        else: sub_n_imperfect_uniq_to_ref_reads += 1
-                    bu_res.append([qname, ref_bc, umi, is_perfect])
-            # UMI clustering within each bc
-            # return:
-            # (bc, umi, reads, cmpt_trans)
-            umi_cluster_res = cu.umi_clustering(read_to_trans, bu_res)
-        # mp_res_q.put([bu_res, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads])
-        mp_res_q.put([umi_cluster_res, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads])
-    return
-
-
-# TODO
-# add progress of finished / total fetch_set
-def mp_write_ref_bc(mp_res_q, trans_to_gene_id_name, out_bu_fn, in_sam_fn):
-    tot_perfect_in_ref_reads, tot_perfect_uniq_to_ref_reads, tot_imperfect_in_ref_reads, tot_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
-    with open(out_bu_fn, 'w') as out_fp:
-        out_fp.write('#BC\tUMI\tReadCount\tTranscripts\tReads\n')
-        while True:
-            res = mp_res_q.get()
-            if res is None:
-                break
-            out_res, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = res
-            tot_perfect_in_ref_reads += sub_n_perfect_in_ref_reads
-            tot_perfect_uniq_to_ref_reads += sub_n_perfect_uniq_to_ref_reads
-            tot_imperfect_in_ref_reads += sub_n_imperfect_in_ref_reads
-            tot_imperfect_uniq_to_ref_reads += sub_n_imperfect_uniq_to_ref_reads
-            for bc, umi, reads, cmpt_trans in out_res:
-                cmpt_gene_id, cmpt_gene_names = get_cmpt_genes(cmpt_trans, trans_to_gene_id_name)
-                out_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(bc, umi, len(reads), ','.join(cmpt_trans), ','.join(cmpt_gene_id), ','.join(cmpt_gene_names), ','.join(reads)))
-            # for qname, ref_bc, umi, is_perfect in out_res:
-                # out_fp.write('{}\t{}\t{}\n'.format(qname, ref_bc, umi))
-    return [tot_perfect_in_ref_reads, tot_perfect_uniq_to_ref_reads, tot_imperfect_in_ref_reads, tot_imperfect_uniq_to_ref_reads]
-
-
-def mp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, ncpu):
-    ut.err_format_time(__name__, "Assigning barcode & UMI ...")
-    mp_res_q = mp.Manager().Queue()
-    mp_pool = Pool(processes=ncpu)
-
-    def splitlist(inlist, chunksize):
-        return [inlist[x:x+chunksize] for x in range(0, len(inlist), chunksize)]
-
-    chunksize = int(len(mp_fetch_set) / (ncpu-1))  # 1 for writer, ncpu-1 for readers
-    if chunksize <= 0:
-        chunksize = 1
-    mp_fetch_splited_set = splitlist(mp_fetch_set, chunksize)
-    # writer
-    writer = mp_pool.apply_async(mp_write_ref_bc, (mp_res_q, trans_to_gene_id_name, out_bu_fn, in_sam_fn))
-
-    readers = []
-    for mp_fetch_splited_set1 in mp_fetch_splited_set:
-        reader = mp_pool.apply_async(mp_assign_ref_bc1, (mp_fetch_splited_set1, nh_ref_bcs, nh_cand_ref_bc_seq, mp_res_q, in_sam_fn, read_to_trans, trans_to_gene_id_name, bc_len, bc_max_ed, umi_len))
-        readers.append(reader)
-    for reader in readers:
-        reader.get()
-    mp_res_q.put(None)
-    n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads = writer.get()
-    mp_pool.close()
-    mp_pool.join()
-    ut.err_format_time(__name__, "Assigning barcode & UMI done!")
-
-    ut.err_format_time(__name__,  'Barcode assignment stats:')
-
-    sys.stderr.write(
-f'''Total assigned reads:\t\t{(n_perfect_in_ref_reads+n_perfect_uniq_to_ref_reads+n_imperfect_in_ref_reads+n_imperfect_uniq_to_ref_reads)}
-Perfect In Reference (PIR):\t\t{n_perfect_in_ref_reads}
-Perfect Unique to Reference (PUR):\t\t{n_perfect_uniq_to_ref_reads}
-Imperfect In Reference (IIR):\t\t{n_imperfect_in_ref_reads}
-Imperfect Unique to Reference (IER):\t\t{n_imperfect_uniq_to_ref_reads}\n''')
-    return
-
-
-def assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_to_trans, bc_len, bc_max_ed, umi_len):
+def assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_to_trans, bc_len, bc_max_ed, umi_len, umi_max_ed):
     bu_res = []
     umi_cluster_res = []
     contig, start, end = mp_fetch_set1
@@ -202,13 +95,13 @@ def assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_t
     # UMI clustering within each bc
     # return:
     # (bc, umi, reads, cmpt_trans)
-    umi_cluster_res = cu.umi_clustering(read_to_trans, bu_res)
+    umi_cluster_res = cu.umi_clustering(read_to_trans, bu_res, umi_max_ed)
     # mp_q_res.put([bu_res, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads])
     res = [bu_reads, bc_eds, out_rs, umi_cluster_res, n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads]
     return res
 
 
-def sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam):
+def sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam):
     ut.err_format_time(__name__, "Assigning barcode & UMI ...")
     n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
     with open(out_bu_fn, 'w') as out_fp, ps.AlignmentFile(in_sam_fn) as in_bam:
@@ -221,7 +114,7 @@ def sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_ma
             bam_header_dict['PG'] = [nhs_append_pg_dict]
         with ps.AlignmentFile(out_bu_bam, 'wb', header=bam_header_dict) as out_bam:
             for mp_fetch_set1 in mp_fetch_set:
-                out_res = assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_to_trans, bc_len, bc_max_ed, umi_len)
+                out_res = assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_to_trans, bc_len, bc_max_ed, umi_len, umi_max_ed)
                 bu_reads, bc_eds, out_rs, umi_cluster_res, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = out_res
                 out_reads = []
                 for bc, umi, reads, cmpt_trans in umi_cluster_res:
@@ -265,8 +158,5 @@ Imperfect Unique to Reference (IER):\t\t{n_imperfect_uniq_to_ref_reads}\n''')
 
 
 # 2nd round: assign bc and UMI clustering within each bc
-def assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam, ncpu):
-    if ncpu > 1:
-        mp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam, ncpu)
-    else:
-        sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam)
+def assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam, ncpu):
+    sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam)

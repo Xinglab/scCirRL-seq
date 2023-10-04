@@ -8,7 +8,7 @@ from .__init__ import __program__
 from .__init__ import __cmd__
 
 from .utils import err_format_time, err_fatal_format_time
-from .seq_utils import _bc_max_ed, _umi_max_ed, _bc_len, _umi_len, get_ref_barcodes, get_mp_fetch_set
+from .seq_utils import _bc_max_ed, _umi_max_ed, _bc_len, _umi_len, _max_clip_len, get_ref_barcodes, get_mp_fetch_set
 from .collect_candidate_bc import collect_cand_ref_bc
 from .assign_bc import assign_ref_bc
 from .parse_quant_file import get_read_to_trans, get_trans_to_gene
@@ -30,15 +30,12 @@ def parser_argv():
     barcode_umi_par.add_argument('-e', '--bc-ed', type=int, default=_bc_max_ed, help='Max allowed edit distance for barcode to reference barcode')
     barcode_umi_par.add_argument('-u', '--umi-len', type=int, default=_umi_len, help='UMI length')
     barcode_umi_par.add_argument('-f', '--umi-ed', type=int, default=_umi_max_ed, help='Max allowed edit distance for UMIs')
-
+    barcode_umi_par.add_argument('-c', '--max-clip-len', type=int, default=_max_clip_len, help='Max allowed clipped length')
+    
     general_par = parser.add_argument_group('general options')
     general_par.add_argument('-i', '--isoquant', action='store_true', default=False, help='Input quantification files (updated_gtf/comp_tsv) are from ISOQUANT, from ESPRESSO by default')
     general_par.add_argument('-g', '--anno-gtf', type=str, default='', help='Annotation GTF file, for ')
-    general_par.add_argument('-c', '--ncpu', type=int, default=1, help='Number of CPU to use')
     general_par.add_argument('-v', '--version', action='version', version=__program__ + ' ' + __version__)
-
-    # quant_par = parser.add_argument_group('quantification result options')
-    # quant_par.add_argument('-m', '--tsv-compt', type=str, default='', help='Read-isoform compatible file, generated from ESPRESSO')
 
     return parser.parse_args()
 
@@ -49,9 +46,9 @@ def bc_umi_calling(args, high_qual_bu_fn, out_ref_bc_fn, out_bu_fn, out_bu_bam, 
     anno_gtf = args.anno_gtf
     cmpt_tsv = args.cmpt_tsv
     is_isoquant = args.isoquant
-    ncpu = args.ncpu
     bc_list, bc_len, umi_len = args.bc_list, args.bc_len, args.umi_len
     bc_max_ed, umi_max_ed = args.bc_ed, args.umi_ed
+    max_clip_len = args.max_clip_len
 
     if not os.path.exists(bam_fn + '.bai'):
         try:
@@ -66,7 +63,7 @@ def bc_umi_calling(args, high_qual_bu_fn, out_ref_bc_fn, out_bu_fn, out_bu_bam, 
     if bc_list:
         nh_ref_bcs = get_ref_barcodes(bc_list, bc_len)
     else:
-        nh_ref_bcs = collect_cand_ref_bc(mp_fetch_set, bc_len, bam_fn, high_qual_bu_fn, ncpu)
+        nh_ref_bcs = collect_cand_ref_bc(bc_len, umi_len, max_clip_len, bam_fn, high_qual_bu_fn)
         if len(nh_ref_bcs) == 0:
             err_format_time(__name__, 'No candidate reference barcode detected. Program exited early.')
             return
@@ -78,7 +75,7 @@ def bc_umi_calling(args, high_qual_bu_fn, out_ref_bc_fn, out_bu_fn, out_bu_bam, 
     # 2nd round: search for exactly matched and uniquely matched BC
     trans_to_gene_id_name = get_trans_to_gene(updated_gtf, anno_gtf)
     read_to_trans = None if cmpt_tsv == '' else get_read_to_trans(cmpt_tsv, trans_to_gene_id_name, is_isoquant)
-    assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, bam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam, ncpu)
+    assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, bam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam)
 
     # 3rd round: quantification, generate mtx file
     make_10X_matrix(out_bu_fn, None, out_mtx_dir)

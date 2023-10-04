@@ -22,30 +22,38 @@ ALL_HAPS = ['H1', 'H2']  # 'none'
 #   as_transcript -> cell types
 class gene_wise_allele_specific_info:
     def __init__(self, gene, gene_name):
-        self.as_cell_types = dd(lambda: "None") # {cell_type}
-        self.as_trans = dd(lambda: dd(lambda: "None")) # {transcript: {cell_type: hap}}
+        # 5 categories
+        # LowExp: low expression, skipped in allele-specific splicing analysis
+        # Unphased: overall phased ratio < 0.8, skipped in allele-specific splicing analysis
+        # NoSplice: only one haplotype-resolved transcript, skipped in allele-specific splicing analysis
+        # True: allele-specific splicing
+        # False: non-allele-specific splicing
+        self.as_gene_cate = dd(lambda: "LowExp") # {cell_type}
+        self.as_trans_cate = dd(lambda: dd(lambda: "None")) # {transcript: {cell_type: hap}}
         self.gene = gene
         self.gene_name = gene_name
         self.chrom = ''
 
     def add_as_cell_type(self, cell_type):
-        self.as_cell_types[cell_type] = 'True'
+        self.as_gene_cate[cell_type] = 'True'
     def add_non_as_cell_type(self, cell_type):
-        self.as_cell_types[cell_type] = 'False'
-    def add_na_cell_type(self, cell_type): # NA: not enough data to determine if allele specific, none: no data
-        self.as_cell_types[cell_type] = 'NA-hap'
+        self.as_gene_cate[cell_type] = 'False'
+    def add_unphased_cell_type(self, cell_type): # NA: not enough data to determine if allele specific, none: no data
+        self.as_gene_cate[cell_type] = 'Unphased'
+    def add_nosplice_cell_type(self, cell_type):
+        self.as_gene_cate[cell_type] = 'NoSplice'
         
-    def add_as_transcript(self, cell_type, trans, hap):
-        self.as_trans[trans][cell_type] = hap
-    def add_non_as_transcript(self, cell_type, trans):
-        self.as_trans[trans][cell_type] = 'False'
+    def add_as_transcript_cell_type(self, cell_type, trans, hap):
+        self.as_trans_cate[trans][cell_type] = hap
+    def add_non_as_transcript_cell_type(self, cell_type, trans):
+        self.as_trans_cate[trans][cell_type] = 'False'
     def set_chrom(self, chrom):
         self.chrom = chrom
 
     def get_as_gene_to_cell_type(self):
-        return self.as_cell_types
+        return self.as_gene_cate
     def get_as_trans_to_cell_type(self):
-        return self.as_trans_to_cell_type
+        return self.as_trans_cate
     def get_all_as_trans_hap(self):
         trans_hap = set()
         for trans in self.as_trans:
@@ -94,7 +102,7 @@ def get_reads_to_hap(hap_list):
                 read_to_hap[qname] = hap
         return read_to_hap
 
-def get_hap(qnames, read_to_hap, trans_id, gene_name, diff_hap_fp):
+def get_hap(qnames, read_to_hap, trans_id, gene_name):
     hap_to_read_cnt = dd(lambda: 0)
     for qname in qnames.rsplit(','):
         if qname in read_to_hap:
@@ -107,7 +115,6 @@ def get_hap(qnames, read_to_hap, trans_id, gene_name, diff_hap_fp):
         if list(hap_to_read_cnt.values())[0] > list(hap_to_read_cnt.values())[1]:
             return list(hap_to_read_cnt.keys())[0]
         else:
-            diff_hap_fp.write('Different hap: {} {} {}\n'.format(qnames, trans_id, gene_name))
             return 'none'
     else:  # 1 hap
         return list(hap_to_read_cnt.keys())[0]
@@ -116,7 +123,7 @@ def get_cluster_wise_gene_to_trans_reads(nhs_bu_fn, bc_to_cluster, read_to_hap):
     cluster_wise_gene_to_trans_reads = dd(lambda: dd(lambda: dd(lambda: dd(lambda: 0))))  # {bc: {gene: {trans: {hap: cnt}}}}
     gene_id_to_name = dict()
     cluster_wise_stats = dd(lambda: dd(lambda: dd(lambda: 0)))
-    with open(nhs_bu_fn) as fp, open(diff_hap_out, 'w') as diff_hap_fp:
+    with open(nhs_bu_fn) as fp:
         for line in fp:
             if line.startswith('#'):
                 continue
@@ -129,7 +136,7 @@ def get_cluster_wise_gene_to_trans_reads(nhs_bu_fn, bc_to_cluster, read_to_hap):
             if bc not in bc_to_cluster:
                 continue
             cluster = bc_to_cluster[bc]
-            hap = get_hap(read_names, read_to_hap, trans_id, gene_name, diff_hap_fp)  # H1/H2/none
+            hap = get_hap(read_names, read_to_hap, trans_id, gene_name)  # H1/H2/none
             cluster_wise_gene_to_trans_reads[cluster][gene_id][trans_id][hap] += 1
             gene_id_to_name[gene_id] = gene_name
 
@@ -137,25 +144,22 @@ def get_cluster_wise_gene_to_trans_reads(nhs_bu_fn, bc_to_cluster, read_to_hap):
             cluster_wise_stats[cluster]['UMI']['total'] += 1
             if hap != 'none':
                 cluster_wise_stats[cluster]['UMI']['phased'] += 1
-    with open(clu_stat_out, 'w') as out_fp:
-        out_fp.write('Cluster\tTotalCells\tTotalUMIs\tPhasedUMIs\n')
-        for clu, stats_out in cluster_wise_stats.items():
-            out_fp.write('{}\t{}\t{}\t{}\n'.format(clu, len(stats_out['cells']), stats_out['UMI']['total'], stats_out['UMI']['phased']))
-
     return cluster_wise_gene_to_trans_reads, gene_id_to_name
 
 # True/False: gene_total_count >= 10, n_trans >= 2, phased_count_per_trans >= 10, phased_ratio_per_trans >= 0.8
 # Unable to phase (NA):  gene_total_count >= 20, but not pass the above criteria
 # Low expression (None): gene_total_count < 20
-def set_as_gene(gene_to_as_info, gene, cluster, as_type):
+def set_as_gene(gene_to_as_info, gene, gene_name, cluster, as_type):
     if gene not in gene_to_as_info:
-        gene_to_as_info[gene] = gene_wise_allele_specific_info(gene, gene_id_to_name[gene])
-    if as_type == 'AS':
+        gene_to_as_info[gene] = gene_wise_allele_specific_info(gene, gene_name)
+    if as_type == 'True':
         gene_to_as_info[gene].add_as_cell_type(cluster)
-    elif as_type == 'non-AS':
+    elif as_type == 'False':
         gene_to_as_info[gene].add_non_as_cell_type(cluster)
-    elif as_type == 'NA':
-        gene_to_as_info[gene].add_na_cell_type(cluster)
+    elif as_type == 'Unphased':
+        gene_to_as_info[gene].add_unphased_cell_type(cluster)
+    elif as_type == 'NoSplice':
+        gene_to_as_info[gene].add_nosplice_cell_type(cluster)
 
 def gene_fdr_corr_and_asts(gene_list, p_list, 
                            gene_to_max_ratio, min_trans_cnt, 
@@ -182,14 +186,14 @@ def gene_fdr_corr_and_asts(gene_list, p_list,
             asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
             continue
         if len(gene_to_trans_reads[gene]) < min_trans_cnt:   # genes with < 2 haplotype-resolved transcripts
-            set_as_gene(gene_to_as_info, gene, cluster, 'NA')
+            set_as_gene(gene_to_as_info, gene, cluster, 'NoSplice')
             continue
         elif fdr > fdr_thres or gene_to_max_ratio[gene_] < delta_ratio:
-            set_as_gene(gene_to_as_info, gene, cluster, 'non-AS')
+            set_as_gene(gene_to_as_info, gene, cluster, 'False')
             continue
 
         asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-        set_as_gene(gene_to_as_info, gene, cluster, 'AS')
+        set_as_gene(gene_to_as_info, gene, cluster, 'True')
 
         # fisher exact test
         tot_cnt = dd(lambda: 0.0)  # {hap: tot_cnt of all trans}
@@ -207,7 +211,7 @@ def gene_fdr_corr_and_asts(gene_list, p_list,
                     ratios.append(gene_to_trans_reads[gene][trans][hap] / tot_cnt[hap])
             p = get_fisher_test_p_value(cnts)
             if abs(ratios[0] - ratios[1]) < delta_ratio or math.isnan(p) or p > p_thres:
-                gene_to_as_info[gene].add_non_as_transcript(cluster, trans)
+                gene_to_as_info[gene].add_non_as_transcript_cell_type(cluster, trans)
                 continue
 
             out_str = [cluster, trans, p, gene, gene_id_to_name[gene], fdr, 
@@ -215,7 +219,7 @@ def gene_fdr_corr_and_asts(gene_list, p_list,
                        gene_to_trans_reads[gene][trans][ALL_HAPS[1]], ratios[0], ratios[1]]
             as_hap = ALL_HAPS[0] if ratios[0] > ratios[1] else ALL_HAPS[1]
             asts_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-            gene_to_as_info[gene].add_as_transcript(cluster, trans, as_hap)
+            gene_to_as_info[gene].add_as_transcript_cell_type(cluster, trans, as_hap)
 
 def is_ae_gene(trans_to_hap_cnt, min_ae_max_hap_ratio, min_ae_gene_phased_ratio, min_ae_gene_phased_cnt):
     hap1_cnt, hap2_cnt, total_cnt = 0, 0, 0
@@ -262,8 +266,8 @@ def write_ae_gene(cell_type, gene, trans_to_hap_cnt, gene_id_to_name, aseg_basic
 # 1. For gene: at least 1 haplotype-resolved transcripts for each gene
 # 2. For gene: overall phased ratio is 100%, i.e. all reads are phased
 # 3. For gene: total phased reads is at least 20
-def cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads, 
-                                          gene_id_to_name, gene_detailed_out, trans_detailed_out, aseg_basic_out,
+def cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads, gene_id_to_name,
+                                          gene_detailed_out, trans_detailed_out, aseg_basic_out,
                                           min_trans_phased_ratio=0.8, min_gene_phased_ratio=0.8,
                                           min_ae_max_hap_ratio=0.8, min_ae_gene_phased_ratio=0.8, min_ae_gene_phased_cnt=20,
                                           min_trans_cnt=2, min_read_cnt=10, low_exprestion_thres=20):
@@ -311,10 +315,15 @@ def cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads,
                         del trans_to_hap_cnt[trans]
                     #else:
                         #gene_total_phased_cnt += phased_cnt
-                if len(trans_to_hap_cnt) < min_trans_cnt or gene_total_phased_cnt / gene_total_cnt < min_gene_phased_ratio:
+                if gene_total_cnt >= low_exprestion_thres:
+                    if gene_total_phased_cnt / gene_total_cnt < min_gene_phased_ratio:
+                        del gene_to_trans_reads[gene]
+                        set_as_gene(gene_to_as_info, gene, gene_id_to_name[gene], cluster, "Unphased")
+                    elif len(trans_to_hap_cnt) < min_trans_cnt:
+                        del gene_to_trans_reads[gene]
+                        set_as_gene(gene_to_as_info, gene, gene_id_to_name[gene], cluster, "NoSplice")
+                else:
                     del gene_to_trans_reads[gene]
-                    if gene_total_cnt >= low_exprestion_thres: # else: None (low expression)
-                         set_as_gene(gene_to_as_info, gene, cluster, "NA")
             for gene, trans_to_hap_cnt in gene_to_trans_reads.items():
                 gene_ = cluster + '+' + gene
                 cnts = []
