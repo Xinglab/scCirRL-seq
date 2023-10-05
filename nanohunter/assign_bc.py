@@ -158,5 +158,5 @@ Imperfect Unique to Reference (IER):\t\t{n_imperfect_uniq_to_ref_reads}\n''')
 
 
 # 2nd round: assign bc and UMI clustering within each bc
-def assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam, ncpu):
+def assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam):
     sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam)
