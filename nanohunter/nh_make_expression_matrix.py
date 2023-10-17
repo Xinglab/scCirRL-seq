@@ -400,7 +400,7 @@ def em_frac_abun(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans, out_dir):
 def parser_argv():
     # parse command line arguments
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="{}: make sparsed count matrix at both gene and transcript levels".format(os.path.basename(__file__)))
-    parser.add_argument('bu_out', metavar='barcode_umi.out', type=str, help='Output file of NanoHunter')
+    parser.add_argument('bu_tsv', metavar='bc_umi.tsv', type=str, help='Output file of NanoHunter')
     parser.add_argument('out_dir', metavar='matrix_output_dir', type=str, help='Folder to output single-cell gene/transcript matrix')
     parser.add_argument('-c', '--bc-cluster', type=str, default='', help='List of cell barcode and corresponding cluster (can be used for cell cluster-wise transcript EM abundance estimation)')
 
