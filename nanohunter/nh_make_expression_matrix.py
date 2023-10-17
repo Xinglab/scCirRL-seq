@@ -23,7 +23,11 @@ def get_bu_cmpt(in_bu_cmpt, bc_to_cluster):
     all_bc = dict()
     with open(in_bu_cmpt) as fp:
         i = 0
+        header = True
         for line in fp:
+            if header:
+                header = False
+                continue
             ele = line.rsplit()
             bc, umi, read_cnt, trans_str, gene_id_str, gene_name_str, reads = ele
             if (cand_bc != [] and bc not in cand_bc) or trans_str == 'NA' or gene_id_str == 'NA' or ',' in gene_id_str:

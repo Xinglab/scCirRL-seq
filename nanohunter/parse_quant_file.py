@@ -2,9 +2,7 @@ import sys
 import os
 from collections import defaultdict as dd
 
-
 filtered_cates = []  # single-exon/NCD/NIC/NNC/ISM/FSM
-
 
 # return: {trans: (chrom, [[exon1], [exon2] ... [exonN]])}
 def get_trans_to_coor(gtf_fn):
@@ -80,14 +78,11 @@ def get_trans_to_gene(updated_gtf, anno_gtf):
                 if 'transcript_id ' in line:
                     trnas_ids = line[15+line.index('transcript_id '):]
                     trans_id = trnas_ids[:trnas_ids.index('"')]
-                    #if trans_id == 'ESPRESSO:chr8:938:32':
-                    #    print('ok')
                 if 'gene_id ' in line:
                     gene_ids = line[9+line.index('gene_id '):]
                     gene_id = gene_ids[:gene_ids.index('"')]
                     if ',' in gene_id: # filter out transcript with multiple gene_id
                         continue
-                        # gene_id = ''
                 if 'gene_name ' in line:
                     gene_names = line[11+line.index('gene_name '):]
                     gene_name = gene_names[:gene_names.index('"')]
@@ -108,7 +103,7 @@ def get_read_to_trans(cmpt_iso_fn, trans_to_gene_id_name, is_isoquant):
     read_to_trans = dd(lambda: [])
     # NA_idx = 0
     if os.path.exists(cmpt_iso_fn) is False:
-        sys.stderr.write('Warning: no quantification file found, no compatible transcripts will be output.\n')
+        sys.stderr.write('Warning: no quantification file found: {}\nNo compatible transcripts will be output.\n'.format(cmpt_iso_fn))
         return read_to_trans
     with open(cmpt_iso_fn) as fp:
         for line in fp:
