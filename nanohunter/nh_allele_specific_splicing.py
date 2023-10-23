@@ -167,14 +167,15 @@ def gene_fdr_corr_and_asts(gene_list, p_list,
                            asg_detailed_fp, asts_detailed_fp, gene_to_as_info):
     gene_fdrs = get_fdr(p_list)
     for gene_, fdr, p in zip(gene_list, gene_fdrs, p_list):
-        cluster, gene = gene_.rsplit('+')
+        cluster, gene_id = gene_.rsplit('+')
+        gene_name = gene_id_to_name[gene_id]
         gene_to_trans_reads = cluster_wise_gene_to_trans_reads[cluster]
-        transs = gene_to_trans_reads[gene].keys()
-        hap1_cnts = [gene_to_trans_reads[gene][trans][ALL_HAPS[0]] for trans in transs]
-        hap2_cnts = [gene_to_trans_reads[gene][trans][ALL_HAPS[1]] for trans in transs]
+        transs = gene_to_trans_reads[gene_id].keys()
+        hap1_cnts = [gene_to_trans_reads[gene_id][trans][ALL_HAPS[0]] for trans in transs]
+        hap2_cnts = [gene_to_trans_reads[gene_id][trans][ALL_HAPS[1]] for trans in transs]
         hap1_ratios = [cnt / sum(hap1_cnts) if sum(hap1_cnts) > 0 else 0 for cnt in hap1_cnts]
         hap2_ratios = [cnt / sum(hap2_cnts) if sum(hap2_cnts) > 0 else 0 for cnt in hap2_cnts]
-        out_str = [cluster, gene, gene_id_to_name[gene], fdr, 
+        out_str = [cluster, gene_id, gene_name, fdr, 
                    ','.join(transs), 
                    ','.join(list(map(str, hap1_cnts))), 
                    ','.join(list(map(str, hap2_cnts))), 
@@ -185,41 +186,41 @@ def gene_fdr_corr_and_asts(gene_list, p_list,
             # write nan fdr, where gene is allele-specific-expressed
             asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
             continue
-        if len(gene_to_trans_reads[gene]) < min_trans_cnt:   # genes with < 2 haplotype-resolved transcripts
-            set_as_gene(gene_to_as_info, gene, cluster, 'NoSplice')
+        if len(gene_to_trans_reads[gene_id]) < min_trans_cnt:   # genes with < 2 haplotype-resolved transcripts
+            set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'NoSplice')
             continue
         elif fdr > fdr_thres or gene_to_max_ratio[gene_] < delta_ratio:
-            set_as_gene(gene_to_as_info, gene, cluster, 'False')
+            set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'False')
             continue
 
         asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-        set_as_gene(gene_to_as_info, gene, cluster, 'True')
+        set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'True')
 
         # fisher exact test
         tot_cnt = dd(lambda: 0.0)  # {hap: tot_cnt of all trans}
         for hap in ALL_HAPS:
-            for trans in gene_to_trans_reads[gene]:
-                tot_cnt[hap] += gene_to_trans_reads[gene][trans][hap]
-        for trans in gene_to_trans_reads[gene]:
+            for trans in gene_to_trans_reads[gene_id]:
+                tot_cnt[hap] += gene_to_trans_reads[gene_id][trans][hap]
+        for trans in gene_to_trans_reads[gene_id]:
             cnts, ratios = [], []
             for hap in ALL_HAPS:
-                cnt = [gene_to_trans_reads[gene][trans][hap], tot_cnt[hap] - gene_to_trans_reads[gene][trans][hap]]
+                cnt = [gene_to_trans_reads[gene_id][trans][hap], tot_cnt[hap] - gene_to_trans_reads[gene_id][trans][hap]]
                 cnts.append(cnt)
                 if tot_cnt[hap] == 0:
                     ratios.append(0.0)
                 else:
-                    ratios.append(gene_to_trans_reads[gene][trans][hap] / tot_cnt[hap])
+                    ratios.append(gene_to_trans_reads[gene_id][trans][hap] / tot_cnt[hap])
             p = get_fisher_test_p_value(cnts)
             if abs(ratios[0] - ratios[1]) < delta_ratio or math.isnan(p) or p > p_thres:
-                gene_to_as_info[gene].add_non_as_transcript_cell_type(cluster, trans)
+                gene_to_as_info[gene_id].add_non_as_transcript_cell_type(cluster, trans)
                 continue
 
-            out_str = [cluster, trans, p, gene, gene_id_to_name[gene], fdr, 
-                       gene_to_trans_reads[gene][trans][ALL_HAPS[0]], 
-                       gene_to_trans_reads[gene][trans][ALL_HAPS[1]], ratios[0], ratios[1]]
+            out_str = [cluster, trans, p, gene_id, gene_name, fdr, 
+                       gene_to_trans_reads[gene_id][trans][ALL_HAPS[0]], 
+                       gene_to_trans_reads[gene_id][trans][ALL_HAPS[1]], ratios[0], ratios[1]]
             as_hap = ALL_HAPS[0] if ratios[0] > ratios[1] else ALL_HAPS[1]
             asts_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-            gene_to_as_info[gene].add_as_transcript_cell_type(cluster, trans, as_hap)
+            gene_to_as_info[gene_id].add_as_transcript_cell_type(cluster, trans, as_hap)
 
 def is_ae_gene(trans_to_hap_cnt, min_ae_max_hap_ratio, min_ae_gene_phased_ratio, min_ae_gene_phased_cnt):
     hap1_cnt, hap2_cnt, total_cnt = 0, 0, 0
@@ -363,9 +364,9 @@ def output_allele_specific_splicing(all_cell_types, gene_to_allele_specific, ass
             # gene
             gene_as_info = gene_to_allele_specific[gene]
             gene_name = gene_as_info.gene_name
-            gene_fp.write('\t'.join([gene_name, gene, '\t'.join([gene_as_info.as_cell_types[cell_type] for cell_type in all_cell_types])]) + '\n')
+            gene_fp.write('\t'.join([gene_name, gene, '\t'.join([gene_as_info.as_gene_cate[cell_type] for cell_type in all_cell_types])]) + '\n')
             # transcript
-            for trans, trans_as_info in gene_as_info.as_trans.items():
+            for trans, trans_as_info in gene_as_info.as_trans_cate.items():
                 if ALL_HAPS[0] in trans_as_info.values() or ALL_HAPS[1] in trans_as_info.values():
                     trans_fp.write('\t'.join([trans, gene_name, gene, '\t'.join([trans_as_info[cell_type] for cell_type in all_cell_types])]) + '\n')
 

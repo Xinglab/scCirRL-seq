@@ -40,6 +40,11 @@ make_azimuth_seurat_obj <- function(in_mtx_dir, name) {
 # load data
 pbmc <- make_azimuth_seurat_obj(data_dir, name)
 
+# make out_dir if not exist
+if (!dir.exists(out_dir)) {
+    dir.create(out_dir)
+}
+
 # umap plot
 l1_umap_plot_file <- paste(out_dir, "/", name, "_azimuth_umap_l1.pdf", sep = "")
 pdf(l1_umap_plot_file, width = 7, height = 7)
@@ -66,3 +71,4 @@ write.table(pbmc$predicted.celltype.l1, l1_bc_to_clu_file, sep = "\t", quote=F, 
 l2_bc_to_clu_file <- paste(out_dir, "/", name, "_azimuth_bc_to_cell_type_l2.tsv", sep = "")
 # pbmc$predicted.celltype.l2<-gsub(" ", "", pbmc$predicted.celltype.l2)
 write.table(pbmc$predicted.celltype.l2, l2_bc_to_clu_file, sep = "\t", quote=F, col.names=F, row.names=T)
+

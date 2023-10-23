@@ -36,6 +36,7 @@ def write_gene_to_clu_cnt(gene_clu_cnt, all_clus, out_prefix):
 def main():
     if len(sys.argv) != 4:
         print('{} gene/trans_mtx_dir bc_to_clu.tsv out_prefix'.format(sys.argv[0]))
+        print('\tgenerate cluster-wise gene/transcript count/CPM matrix')
         sys.exit(1)
     feature_mtx_dir = sys.argv[1]
     bc_to_clu_tsv = sys.argv[2]
