@@ -7,8 +7,8 @@ import vcf # pyvcf
 import duckdb as db
 
 filtered_out_gene_prefix = 'HLA-'
-ld_populations = ['EUR']
-# ld_populations = ['AFR', 'AMR', 'EAS', 'EUR', 'SAS']
+# ld_populations = ['EUR']
+ld_populations = ['AFR', 'AMR', 'EAS', 'EUR', 'SAS']
 ld_table_prefix = 'tkg_p3v5a_ld' # tkg_p3v5a_ld_chr1_AFR
 ld_threshold = 0.8
 promoter_upstream_len = 500
@@ -288,13 +288,14 @@ def parse_gwas_file(gwas_fn, genes=[]):
     return all_gwas_snp_to_trait
 
 def get_gene_to_coor(gtf_fn, all_genes=[]):
+    gene_name_to_id = dd(lambda: '')
     gene_id_to_name = dd(lambda: '')
-    gene_to_coor = dd(lambda: ('', sys.maxsize, -sys.maxsize), '')
+    gene_name_to_coor = dd(lambda: ('', sys.maxsize, -sys.maxsize), '')
     with open(gtf_fn) as fp:
         for line in fp:
             if line.startswith('#'):
                 continue
-            ele = line.rsplit()
+            ele = line.strip().rsplit('\t')
             # 'transcript' for gene
             # 'exon' for transcript
             gene_id, gene_name, trans_id = '', '', ''
@@ -315,11 +316,12 @@ def get_gene_to_coor(gtf_fn, all_genes=[]):
                 continue
             chrom, start, end, strand = ele[0], int(ele[3]), int(ele[4]), ele[6]
             gene_id_to_name[gene_id] = gene_name
-            gene_to_coor[gene_id] = (chrom, 
-                                     min(gene_to_coor[gene_id][1], start), 
-                                     max(gene_to_coor[gene_id][2], end), 
+            gene_name_to_id[gene_name] = gene_id
+            gene_name_to_coor[gene_name] = (chrom, 
+                                     min(gene_name_to_coor[gene_name][1], start), 
+                                     max(gene_name_to_coor[gene_name][2], end), 
                                      strand)
-    return gene_id_to_name, gene_to_coor
+    return gene_name_to_id, gene_id_to_name, gene_name_to_coor
 
 snp_id_pos_table = 'tkg_p3v5a_hg38'
 def get_snp_id_from_ld_table(ld_con, chrom, pos):
@@ -353,9 +355,9 @@ def get_ld_snps(ld_cand_snps, gwas_snps, ld_con, ld_table_prefix, ld_populations
                           (SNP_B in ({ld_cand_snp_str}) AND SNP_A in ({gwas_snp_str})) )"
         ld_res = ld_con.execute(ld_query_cmd).fetchall()
         for snp_a, snp_b, r2 in ld_res:
-            if snp_a in ld_cand_snps:
+            if snp_a in ld_cand_snps and snp_b in gwas_snps_list:
                 hap_snp_to_ld_gwas_snps.add((snp_a, snp_b, population, r2))
-            if snp_b in ld_cand_snps:
+            if snp_b in ld_cand_snps and snp_a in gwas_snps_list:
                 hap_snp_to_ld_gwas_snps.add((snp_b, snp_a, population, r2))
     return hap_snp_to_ld_gwas_snps
 
@@ -398,15 +400,12 @@ def get_ld_scores(snps1, snps2, ld_con, ld_table_prefix, ld_populations, chrom, 
 def set_gwas_ld(snp_to_snp_info, gwas_snps, chrom, ld_populations, ld_table_prefix, ld_threshold, ld_con):
     ld_cand_snps = []
     for snp, snp_info in snp_to_snp_info.items():
-        ld_cand_snps.append(snp)
     # check if SNP is in GWAS
-    for snp in snp_to_snp_info:
-        snp_info = snp_to_snp_info[snp]
         if snp in gwas_snps:
             snp_info._is_gwas_snp = True
         else:
             snp_info._is_gwas_snp = False
-    # check if SNP is in LD with GWAS
+        ld_cand_snps.append(snp) # calculate LD of SNP with other GWAS SNP, even if the SNP is already a GWAS SNP
     # print(f"LD searching for chromosome {chrom}")
     if len(ld_cand_snps) > 0 and len(gwas_snps) > 0:
         ld_gwas_snps = get_ld_snps(ld_cand_snps, gwas_snps, ld_con, ld_table_prefix, ld_populations, chrom, ld_threshold)
@@ -414,8 +413,9 @@ def set_gwas_ld(snp_to_snp_info, gwas_snps, chrom, ld_populations, ld_table_pref
             snp_to_snp_info[cand_snp].add_ld_snp(ld_snp, population, r2)
 
 #   collect all SNPs within the gene for each haplotype
-def collect_gene_snps(all_gene_id_to_name, gene_to_coor, vcf_fn, ld_duckdb_fn, sample_name):
-    all_gene_to_snps = dd(lambda: dd(lambda: dd(lambda: None))) # chr -> gene -> snp_id -> snp_info
+def collect_donor_snps(gene_name_to_id, gene_name_to_coor, vcf_fn, ld_duckdb_fn, promoter_len, sample_name):
+    all_gene_to_snps = dd(lambda: dd(lambda: dd(lambda: None))) # chr -> gene -> snp_id -> snp_info, snps in genes
+    all_donor_snps = dd(lambda: dd(lambda: None)) # chr -> snp_id -> snp_info, all snps
     # 1. open vcf file
     vcf_reader = open_vcf_file(vcf_fn)
     if not sample_name:
@@ -428,12 +428,14 @@ def collect_gene_snps(all_gene_id_to_name, gene_to_coor, vcf_fn, ld_duckdb_fn, s
             sys.stderr.write('Error: sample name {} is not in VCF file.\n'.format(sample_name))
             sys.exit(1)
     with db.connect(ld_duckdb_fn, read_only=True) as ld_con:
-        for gene_id, gene_name in all_gene_id_to_name.items():
-            chrom, start, end, strand = gene_to_coor[gene_id]
+        all_chroms = dict()
+        for gene_name, gene_id in gene_name_to_id.items():
+            chrom, start, end, strand = gene_name_to_coor[gene_name]
+            all_chroms[chrom] = 1
             if strand == '+':
-                start -= promoter_upstream_len
+                start -= promoter_len
             elif strand == '-':
-                end += promoter_upstream_len
+                end += promoter_len
             # 2. collect all SNPs within the gene
             try:
                 snp_records = vcf_reader.fetch(chrom, max(0, start), end)
@@ -456,18 +458,40 @@ def collect_gene_snps(all_gene_id_to_name, gene_to_coor, vcf_fn, ld_duckdb_fn, s
                 else:
                     continue
                 all_gene_to_snps[chrom][gene_name][snp_id] = snp_info(snp_id, gene_name, chrom, pos, hap)
-    return all_gene_to_snps
+        for chrom in all_chroms:
+            try:
+                snp_records = vcf_reader.fetch(chrom)
+            except:
+                snp_records = []
+            for snp_record in snp_records:
+                if not snp_record.ID:
+                    chrom_without_chr = chrom.replace('chr', '') if 'chr' in chrom else chrom
+                    snp_id = get_snp_id_from_ld_table(ld_con, chrom_without_chr, snp_record.POS)
+                    if not snp_id:
+                        continue
+                else:
+                    snp_id = snp_record.ID
+                pos = snp_record.POS
+                genotype = snp_record.genotype(sample_name)['GT']
+                if genotype == '1|0':
+                    hap = ALL_HAPS[0]
+                elif genotype == '0|1':
+                    hap = ALL_HAPS[1]
+                else:
+                    continue
+                all_donor_snps[chrom][snp_id] = snp_info(snp_id, 'NA', chrom, pos, hap)
+    return all_gene_to_snps, all_donor_snps
 
-# for each perform GWAS analysis
-# . 1. check if its SNP is in GWAS
-# . 2. if not, check if as-trans-SNP is in LD with GWAS
-def collect_gene_to_gwas_traits(all_gene_to_snps, chr_to_all_gwas_snp_trait, ld_duckdb_fn):
+# 1. check if SNP is in GWAS
+# 2. if not, check if SNP is in LD with GWAS SNP
+def connect_gene_to_gwas_traits(donor_gene_to_snps, all_gwas_snp_trait, ld_duckdb_fn):
     gene_to_gwas_traits = dd(lambda: dd(lambda: False)) # gene_name ->  [traits] : T/F
     gene_to_gwas_parent_traits = dd(lambda: dd(lambda: False)) # gene_name -> [traits]: T/F
+    gene_with_gwas = dict() # gene_name -> T/F
     with db.connect(ld_duckdb_fn, read_only=True) as ld_con:
-        for chrom, gene_to_snps in all_gene_to_snps.items():
+        for chrom, gene_to_snps in donor_gene_to_snps.items():
             # for each gene, collect associated disease traits
-            gwas_snp_to_trait = chr_to_all_gwas_snp_trait[chrom]
+            gwas_snp_to_trait = all_gwas_snp_trait[chrom]
             for gene, all_snps in gene_to_snps.items():
                 set_gwas_ld(all_snps, gwas_snp_to_trait, chrom, ld_populations, ld_table_prefix, ld_threshold, ld_con)
                 for snp in all_snps:
@@ -477,13 +501,13 @@ def collect_gene_to_gwas_traits(all_gene_to_snps, chr_to_all_gwas_snp_trait, ld_
                     parents = snp_info.get_all_parents(gwas_snp_to_trait)
                     for trait in traits:
                         gene_to_gwas_traits[gene][trait] = True
+                        gene_with_gwas[gene] = 1
                     for parent in parents:
                         gene_to_gwas_parent_traits[gene][parent] = True
-    return gene_to_gwas_traits, gene_to_gwas_parent_traits
+    return gene_to_gwas_traits, gene_to_gwas_parent_traits, gene_with_gwas
 
-def output_gwas(all_gene_id_to_name, gene_to_gwas_traits, gene_to_gwas_parent_traits, as_gwas_basic_out, as_gwas_parent_out):
+def output_gwas_traits(all_gene_name_to_id, gene_to_gwas_traits, gene_to_gwas_parent_traits, as_gwas_basic_out, as_gwas_parent_out):
     all_traits, all_parents = set(), set()
-    all_gene_name_to_id = {v: k for k, v in all_gene_id_to_name.items()}
     for gene in gene_to_gwas_traits:
         all_traits.update(gene_to_gwas_traits[gene].keys())
         all_parents.update(gene_to_gwas_parent_traits[gene].keys())
@@ -497,17 +521,55 @@ def output_gwas(all_gene_id_to_name, gene_to_gwas_traits, gene_to_gwas_parent_tr
             gwas_parent_fp.write('\t'.join([gene, all_gene_name_to_id[gene]])+'\t')
             gwas_parent_fp.write('\t'.join([str(gene_to_gwas_parent_traits[gene][parent]) for parent in all_parents]) + '\n')
 
-def output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_ld_out_dir, ld_duckdb_fn):
+def output_gwas_snps(all_gene_name_to_id, gene_with_gwas, donor_gene_to_snps, donor_all_snps, chr_to_all_gwas_snp_trait, as_gwas_snp_out):
+    gwas_detail_header = ['gene_name', 'gene_id', 'snp_id', 'is_donor_snp_id', 'haplotype', 'gwas_trait', 'gwas_trait_efo_term']
+
+    # snp_info:
+    # 1. SNP is GWAS_SNP
+    # 2. SNP is LD with other GWAS SNP
+    with open(as_gwas_snp_out, 'w') as fp:
+        fp.write('\t'.join(gwas_detail_header) + '\n')
+        for chrom, gene_to_snps in donor_gene_to_snps.items():
+            gwas_snp_to_trait = chr_to_all_gwas_snp_trait[chrom]
+            for gene_name, all_snps in gene_to_snps.items():
+                if not gene_name in gene_with_gwas: # only output gene with gwas disease traits
+                    continue
+                gene_id = all_gene_name_to_id[gene_name]
+                all_gwas_snp = dict()
+                for snp, snp_info in all_snps.items():
+                    # collect all donor SNPs that are also gwas snps
+                    if snp_info._is_gwas_snp:
+                        all_gwas_snp[snp] = 1
+                    # collect all gwas SNPs LD with donor SNPs
+                    if snp_info.has_ld_snps:
+                        ld_snps = snp_info.ld_info.ld_snps
+                        for snp in ld_snps:
+                            all_gwas_snp[snp] = 1
+                # output all gwas snps
+                for snp in all_gwas_snp:
+                    if snp in donor_all_snps[chrom]:
+                        hap = donor_all_snps[chrom][snp].get_hap()
+                        is_donor_snp = True
+                    else:
+                        hap = 'NA'
+                        is_donor_snp = False
+                    gwas_trait = gwas_snp_to_trait[snp].leading_trait_term
+                    gwas_trait_efo = gwas_snp_to_trait[snp].leading_parent_term
+                    fp.write(f'{gene_name}\t{gene_id}\t{snp}\t{is_donor_snp}\t{hap}\t{gwas_trait}\t{gwas_trait_efo}\n')
+
+def output_ld(all_gene_name_to_id, gene_with_gwas, donor_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_ld_out_dir, ld_duckdb_fn):
     if not os.path.exists(as_gwas_ld_out_dir):
         os.makedirs(as_gwas_ld_out_dir)
     ld_header = ['haplotype', 'chrom', 'pos', 'type', 'gwas_trait', 'gwas_trait_efo_term', 'gwas_pvalue']
     gwas_detail_header = ['snp_id', 'gene_name', 'gene_id', 'haplotype', 'gwas_trait', 'gwas_trait_efo_term', 'ld_trait', 'ld_efo_term', 'ld_snps', 'ld_scores']
-    all_gene_name_to_id = {v: k for k, v in all_gene_id_to_name.items()}
     with db.connect(ld_duckdb_fn, read_only=True) as ld_con: #, open(as_gwas_detail_out, 'w') as gwas_detail_fp:
         # gwas_detail_fp.write('{}\n'.format('\t'.join(gwas_detail_header)))
-        for chrom, gene_to_snps in all_gene_to_snps.items():
+        for chrom, gene_to_snps in donor_gene_to_snps.items():
             gwas_snp_to_trait = chr_to_all_gwas_snp_trait[chrom]
             for gene_name, all_snps in gene_to_snps.items():
+                if gene_name not in gene_with_gwas:
+                    continue
+
                 gene_id = all_gene_name_to_id[gene_name]
                 snps = list(all_snps.keys())
                 ld_scores = get_ld_scores(snps, snps, ld_con, ld_table_prefix, ld_populations, chrom, ld_threshold=0.1)
@@ -530,44 +592,42 @@ def output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, 
                         gwas_trait_parent = snp_info.get_gwas_trait_parent(gwas_snp_to_trait)[0]
                         gwas_pvalue = snp_info.get_gwas_pval(gwas_snp_to_trait)
                         ld_fp.write('\t'.join([hap, chrom, str(pos), snp_type, gwas_trait, gwas_trait_parent, str(gwas_pvalue)]) + '\n')
-                # write gwas details for each snp
-                # for snp in snps:
-                #     snp_info = all_snps[snp]
-                #     hap = snp_info.get_hap()
-                #     gwas_trait = snp_info.get_gwas_trait(gwas_snp_to_trait)[0]
-                #     gwas_trait_parent = snp_info.get_gwas_trait_parent(gwas_snp_to_trait)[0]
-                #     ld_snps, ld_traits, ld_scores, ld_parents = snp_info.get_all_lds(gwas_snp_to_trait)
-                #     gwas_detail_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(
-                #         snp, gene_name, gene_id, hap, gwas_trait, gwas_trait_parent, \
-                #         ','.join(ld_traits), ','.join(ld_parents), ','.join(ld_snps), ','.join([str(score) for score in ld_scores])))
-
 
 def get_gene_list(gene_list_file):
     all_genes = dict()
     header_idx = dict()
     with open(gene_list_file) as fp:
+        with_header = False
         header = True
         for line in fp:
-            ele = line.rsplit('\t')
+            ele = line.strip().rsplit('\t')
             if header:
                 header = False
                 header_idx = {ele[i].upper(): i for i in range(len(ele))}
+                for h1 in ['GENE', 'GENE_ID', 'GENEID', 'GENE_NAME', 'GENENAME']:
+                    if h1 in header_idx:
+                        with_header = True
+                        break
                 continue
-            for h1 in ['GENE', 'GENE_ID', 'GENEID', 'GENE_NAME', 'GENENAME']:
-                if h1 in header_idx:
-                    all_genes[ele[header_idx[h1]]] = True
-                    break
+            if with_header:
+                for h1 in ['GENE', 'GENE_ID', 'GENEID', 'GENE_NAME', 'GENENAME']:
+                    if h1 in header_idx:
+                        all_genes[ele[header_idx[h1]]] = True
+                        break
+            else: # collect the first column as gene id/name
+                all_genes[ele[0]] = True
     return list(all_genes.keys())
 
 # if no gene_list_fn provided, collect all genes from GTF file
 # 1. collect gene_id to gene_name
 # 2. collect gene_id to gene_coordinate
 def get_gene_infor(gene_list_fn, gtf_fn):
-    all_genes = []
+    listed_genes = []
     if gene_list_fn:
-        all_genes = get_gene_list(gene_list_fn)
-    all_gene_id_to_name, all_gene_id_to_coor = get_gene_to_coor(gtf_fn, all_genes)
-    return all_gene_id_to_name, all_gene_id_to_coor
+        listed_genes = get_gene_list(gene_list_fn)
+    all_gene_name_to_id, all_gene_id_to_name, all_gene_name_to_coor = get_gene_to_coor(gtf_fn, listed_genes)
+    listed_gene_names = [gene if gene in all_gene_name_to_id else all_gene_id_to_name[gene] for gene in listed_genes]
+    return listed_gene_names, all_gene_name_to_id, all_gene_name_to_coor
     
 def parser_argv():
     # parse command line arguments
@@ -581,7 +641,9 @@ def parser_argv():
     parser.add_argument('out_pre', metavar='out_pre', type=str, help='Output prefix')
     
     parser.add_argument('-g', '--gene-list', metavar='gene_list', type=str, default='',
-                             help='File of gene list (ID or name). Only SNPs within the genes will be considered.\n'+'All genes/SNPs will be considered if no gene list is provided')
+                        help='File of gene list (ID or name). Only genes listed in the file will be considered.\n'+'All genes will be considered if no gene list is provided')
+    parser.add_argument('-p', '--promoter-len', type=int, default=promoter_upstream_len,
+                        help='Length of upstream promoter region. Along with SNPs in the gene body, SNPs in the promoter region will also be considered for each gene.')
     parser.add_argument('-n', '--sample-name', metavar='sample_name', type=str,
                              help='Sample name. If no sample name is provided, the first sample in VCF file will be used')
     return parser.parse_args()
@@ -595,31 +657,39 @@ def parser_argv():
 # 6. output:
 # . 1. gene-wise GWAS disease traits
 # . 2. gene-wise LD scores (for LD plot)
-
 def main():
     args = parser_argv()
 
     gene_list_fn, gtf_fn, vcf_fn, gwas_fn, ld_duckdb_fn, sample_name = \
         args.gene_list, args.gtf, args.vcf, args.gwas, args.ld_duckdb, args.sample_name
+    promoter_len = args.promoter_len
     out_pre = args.out_pre
 
-    as_gwas_basic_out = out_pre + '_allele_spliced_gene_gwas.tsv'
-    as_gwas_basic_efo_out = out_pre + '_allele_spliced_gene_gwas_efo_term.tsv'
-    # as_gwas_detail_out = out_pre + '_allele_spliced_gene_gwas_detailed.tsv'
-    as_gwas_ld_out_dir = out_pre + '_allele_spliced_gene_gwas_ld' # directory, each gene has a separate file for all SNPs
+    as_gwas_basic_out = out_pre + '_gwas_stat.tsv'
+    as_gwas_basic_efo_out = out_pre + '_gwas_efo_term_stat.tsv'
+    as_gwas_snp_out = out_pre + '_gwas_snps_detailed.tsv'
+    as_gwas_ld_out_dir = out_pre + '_gwas_snps_ld' # directory, each gene has a separate file for all SNPs
 
-    all_gene_id_to_name, all_gene_id_to_coor = get_gene_infor(gene_list_fn, gtf_fn)
-    # print(all_gene_id_to_coor)
-    chr_to_all_gwas_snp_trait = parse_gwas_file(gwas_fn) #, all_gene_names) # chr -> snp -> trait_info
-    all_gene_to_snps = collect_gene_snps(all_gene_id_to_name, all_gene_id_to_coor, vcf_fn, ld_duckdb_fn, sample_name) # chr -> gene_name -> snp_id -> snp_info
+    listed_gene_names, gene_name_to_id, gene_name_to_coor = get_gene_infor(gene_list_fn, gtf_fn)
+    # collect GWAS SNPs from database
+    all_gwas_snp_trait = parse_gwas_file(gwas_fn) # chr -> snp -> trait_info, this includes all GWAS snps related to disease traits
+    # collect SNPs from individual donor's VCF
+    donor_gene_to_snps, donor_all_snps = collect_donor_snps(gene_name_to_id, gene_name_to_coor, \
+                                                            vcf_fn, ld_duckdb_fn, promoter_len, sample_name) # chr -> gene_name -> snp_id -> snp_info
     
-    # gene_name -> [traits] : T/F
-    gene_to_gwas_traits, gene_to_gwas_parent_traits = collect_gene_to_gwas_traits(all_gene_to_snps, chr_to_all_gwas_snp_trait, ld_duckdb_fn)
+    # 1. search for donor's SNPs in GWAS databased
+    # 2. calculate LD between donor's SNPs and GWAS SNPs
+    gene_to_gwas_traits, gene_to_gwas_parent_traits, gene_with_gwas = connect_gene_to_gwas_traits(donor_gene_to_snps, \
+                                                                                                  all_gwas_snp_trait, ld_duckdb_fn)
+    # gene_to_gwas_traits: {gene_name -> {traits : T/F}}
+    print(gene_with_gwas)
 
-    # write to file
-    output_gwas(all_gene_id_to_name, gene_to_gwas_traits, gene_to_gwas_parent_traits, as_gwas_basic_out, as_gwas_basic_efo_out)
-    # output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_detail_out, as_gwas_ld_out_dir, ld_duckdb_fn)
-    output_ld(all_gene_id_to_name, all_gene_to_snps, chr_to_all_gwas_snp_trait, as_gwas_ld_out_dir, ld_duckdb_fn)
+    # write gene-wise gwas information to file
+    output_gwas_traits(gene_name_to_id, gene_to_gwas_traits, gene_to_gwas_parent_traits, as_gwas_basic_out, as_gwas_basic_efo_out)
+    # write all GWAS SNPs for each gene
+    output_gwas_snps(gene_name_to_id, gene_with_gwas, donor_gene_to_snps, donor_all_snps, all_gwas_snp_trait, as_gwas_snp_out)
+    # write LD information to file, all SNPs including GWAS SNP and GWAS_LD SNPs
+    output_ld(gene_name_to_id, gene_with_gwas, donor_gene_to_snps, all_gwas_snp_trait, as_gwas_ld_out_dir, ld_duckdb_fn)
 
 
 if __name__ == '__main__':

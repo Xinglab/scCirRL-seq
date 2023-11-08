@@ -11,9 +11,9 @@ from rpy2.robjects.packages import importr
 
 stats = importr('stats')
 
-fdr_thres=0.05
-p_thres = 0.05
-delta_ratio = 0.05
+fdr_thres   = 0.05 # ≤ 0.05
+p_thres     = 0.05 # ≤ 0.05
+delta_ratio = 0.05 # > 0.05
 
 
 def get_chisq_test_p_value(cnt=[]):
@@ -222,10 +222,17 @@ def old_get_gene_trans_clu_cnt(bc_to_clu, in_trans_mtx_dir,
     print('after filtering: {} genes {} transcripts'.format(len(gene_trans_clu_cnt), kept_trans_n))
     return gene_trans_clu_cnt
 
+def get_clu_size(bc_to_clu):
+    clu_to_size = dd(lambda: 0)
+    for bc, clu in bc_to_clu.items():
+        clu_to_size[clu] += 1
+    return clu_to_size
+    
 def get_gene_trans_clu_cnt(bc_to_clu, in_trans_mtx_dir):
     trans_to_bc_cnt, all_bcs = get_feature_to_bc_cnt_from_sc_matrix(in_trans_mtx_dir)
     trans_to_gene = get_trans_to_gene_from_sc_matrix(in_trans_mtx_dir)
     gene_trans_clu_cnt = dd(lambda: dd(lambda: dd(lambda: 0.0)))
+    gene_to_bc_cnt = dd(lambda: dd(lambda: 0.0)) # {gene {bc: cnt}}
     for trans, bc_cnt in trans_to_bc_cnt.items():
         if trans not in trans_to_gene:
             continue
@@ -235,17 +242,33 @@ def get_gene_trans_clu_cnt(bc_to_clu, in_trans_mtx_dir):
                 continue
             clu = bc_to_clu[bc]
             gene_trans_clu_cnt[gene][trans][clu] += cnt
-    return gene_trans_clu_cnt
+            gene_to_bc_cnt[gene][bc] += cnt
+    clu_to_total_cells = get_clu_size(bc_to_clu)
+    gene_clu_pct = dd(lambda: dd(lambda: 0))
+    for gene, bc_cnt in gene_to_bc_cnt.items():
+        for bc, cnt in bc_cnt.items():
+            if cnt > 0 and bc in bc_to_clu:
+                clu = bc_to_clu[bc]
+                gene_clu_pct[gene][clu] += 1
+        for clu, clu_size in clu_to_total_cells.items():
+            gene_clu_pct[gene][clu] = 0.0 if clu_size == 0 else gene_clu_pct[gene][clu]/clu_size
+    return gene_trans_clu_cnt, gene_clu_pct
 
 def get_gene_clu_cnt(bc_to_clu, in_gene_mtx_dir):
     gene_to_bc_cnt, all_bcs = get_feature_to_bc_cnt_from_sc_matrix(in_gene_mtx_dir)
     gene_clu_cnt = dd(lambda: dd(lambda: 0.0))
+    gene_clu_pct = dd(lambda: dd(lambda: 0.0))
+    clu_to_total_cells = get_clu_size(bc_to_clu)
     for gene in gene_to_bc_cnt:
         for bc in gene_to_bc_cnt[gene]:
             if bc in bc_to_clu:
                 clu = bc_to_clu[bc]
                 gene_clu_cnt[gene][clu] += gene_to_bc_cnt[gene][bc]
-    return gene_clu_cnt
+                if gene_to_bc_cnt[gene][bc] > 0:
+                    gene_clu_pct[gene][clu] += 1
+        for clu, clu_size in clu_to_total_cells.items():
+            gene_clu_pct[gene][clu] = 0.0 if clu_size == 0 else gene_clu_pct[gene][clu]/clu_size
+    return gene_clu_cnt, gene_clu_pct
 
 def get_gene_list(gene_list_fn):
     gene_list = dict()
@@ -254,7 +277,7 @@ def get_gene_list(gene_list_fn):
             gene_list[line.strip()] = 1
     return gene_list
 
-def cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, gene_fp, trans_fp,
+def cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, inc_non_sign_trans, gene_fp, trans_fp,
                                       gene_list, trans_min_cnt=2, min_trans_per_gene=2):
     used_genes = []
     used_transs = []
@@ -310,11 +333,13 @@ def cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, gene_fp, tra
             ratio2 = cnt2 / sum(trans_cnt2s) if sum(trans_cnt2s) > 0 else 0
             trans_p = get_fisher_test_p_value([fisher_trans_cnt1s, fisher_trans_cnt2s])
             if math.isnan(trans_p) or trans_p > p_thres or abs(ratio1 - ratio2) < delta_ratio:
+                if inc_non_sign_trans:
+                    trans_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format('\t'.join(gene.rsplit(',')), trans, gene_fdr, trans_p, abs(ratio1-ratio2), cnt1, cnt2, ratio1, ratio2, ct1, ct2))
                 continue
             trans_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format('\t'.join(gene.rsplit(',')), trans, gene_fdr, trans_p, abs(ratio1-ratio2), cnt1, cnt2, ratio1, ratio2, ct1, ct2))
 
 def cluster_wise_differential_splice(gene_trans_clu_cnt, all_cell_types, 
-                                     out_prefix, gene_list, trans_min_cnt, min_trans_per_gene):
+                                     out_prefix, inc_non_sign_trans, gene_list, trans_min_cnt, min_trans_per_gene):
     pairwise_cell_types = list(itertools.combinations(all_cell_types, 2))
     with open(f'{out_prefix}_cell_specific_spliced_genes.tsv', 'w') as gene_fp, \
          open(f'{out_prefix}_cell_specific_spliced_transcripts.tsv', 'w') as trans_fp:
@@ -329,7 +354,9 @@ def cluster_wise_differential_splice(gene_trans_clu_cnt, all_cell_types,
         for (ct1, ct2) in pairwise_cell_types:
             if ct2 < ct1:
                 ct1, ct2 = ct2, ct1
-            cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, gene_fp, trans_fp, gene_list, trans_min_cnt, min_trans_per_gene)
+            cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, 
+                                              inc_non_sign_trans, gene_fp, trans_fp, 
+                                              gene_list, trans_min_cnt, min_trans_per_gene)
 
 def parser_argv():
     # parse command line arguments
@@ -340,6 +367,7 @@ def parser_argv():
     parser.add_argument('-c', '--trans-min-count', type=int, default=10, help='Minimum number of read count of a kept transcript in at least one cell cluster')
     parser.add_argument('-t', '--min-trans-per-gene', type=int, default=2, help='Minimum number of transcripts of a kept gene')
     parser.add_argument('-l', '--gene-list', type=str, default=None, help='List of genes of interest. Only DS genes from the list will be outputted. If not specified, all genes are considered')
+    parser.add_argument('-n', '--non-sign-trans', action='store_true', default=False, help='Include both significant and non-significant transcripts for significant differential splliced genes')
     return parser.parse_args()
 
 def main():
@@ -354,11 +382,12 @@ def main():
     in_trans_mtx_dir, bc_to_clu_tsv = args.trans_mtx_dir, args.bc_to_cluster, 
     out_prefix, trans_min_cnt, min_trans_per_gene = args.out_prefix, float(args.trans_min_count), float(args.min_trans_per_gene)
     gene_list_fn = args.gene_list
+    inc_non_sign_trans = args.non_sign_trans
     bc_to_clu = get_bc_to_clu(bc_to_clu_tsv)
     gene_list = {} if gene_list_fn is None else get_gene_list(gene_list_fn)
-    gene_trans_clu_cnt = get_gene_trans_clu_cnt(bc_to_clu, in_trans_mtx_dir)
+    gene_trans_clu_cnt, gene_clu_pct = get_gene_trans_clu_cnt(bc_to_clu, in_trans_mtx_dir)
     cluster_wise_differential_splice(gene_trans_clu_cnt, list(set(bc_to_clu.values())), \
-                                     out_prefix, gene_list, trans_min_cnt, min_trans_per_gene)
+                                     out_prefix, inc_non_sign_trans, gene_list, trans_min_cnt, min_trans_per_gene)
     
 if __name__ == '__main__':
     main()

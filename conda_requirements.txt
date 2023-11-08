@@ -5,7 +5,7 @@ scipy>=1.10.1
 rpy2>=3.5.11
 PyVCF3>=1.0.3
 pyinterval>=1.2.0
-duckdb>=0.7.1
+duckdb==0.7.1
 tabix
 whatshap>=1.7
 tidehunter>=1.5.4

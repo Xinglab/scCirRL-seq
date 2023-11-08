@@ -11,7 +11,7 @@ __module__ = 'nanohunter'
 __scripts__ = ['nh_cell_type_specific_splicing',
                'nh_allele_specific_splicing',
                'nh_bulk_allele_specific_splicing',
-               'nh_gene_with_gwas_disease_snp',
+               'nh_gene_with_gwas_disease',
                'nh_make_expression_matrix',
                'nh_split_bam_by_cluster']
 __version__ = '1.0.0.beta3'
