@@ -100,7 +100,7 @@ minimap2 ref.fa long_read.fq/fa         \
          -t n_threads -o long_read.sam
 
 # covert sam to sorted bam
-samtools view long_read.sam -b long_read.bam
+samtools view long_read.sam -b -o long_read.bam
 samtools sort long_read.bam -@ n_threads -o long_read.sorted.bam
 ```
 ### 0.2 Transcript identification
