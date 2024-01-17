@@ -15,7 +15,7 @@
 scRMATS-long is an analysis pipeline designed for long-read single-cell RNA-seq data.
 It mainly consists of two parts:
 1. NanoHunter: a standalone module for barcode/UMI calling and gene/transcript quantification
-2. scRMATS-long: cell type-specific & allele-specific splicing analysis
+2. scRMATS-long: analysis modules for identificaton of cell type-specific and allele-specific splicing
 
 <img src="figs/nanohunter-github-workflow.png" width="70%">
 
@@ -110,7 +110,7 @@ The generated consensus sequences can then be mapped to reference genome as regu
 
 * Input
   * `rca_long_read.fq`: RCA long-read fasta/fastq file
-  * `five_prime.fa`, `three_prime.fa`: 5' and 3' sequence of RCA library. If a splint sequence was used, please split the splint sequence into two halves and use them as 5' and 3' sequences. Note that both 5' and 3' sequences need to have an orientation of 5'->3', i.e., 3' sequence needs to be reverse-complement
+  * `five_prime.fa`, `three_prime.fa`: 5' and 3' sequences of RCA library. If a splint sequence was used, please split the splint sequence into two halves and use them as 5' and 3' sequences. Note that both 5' and 3' sequences need to have an orientation of 5'->3', i.e., 3' sequence needs to be reverse-complement
 
 * Command
 ```
@@ -126,7 +126,7 @@ For mapping, we recommend using [minimap2](https://github.com/lh3/minimap2) in R
 Any other long-read RNA-seq alignment tools can also be used here.
 
 * Input
-  * `long_read.fq/fa`: 1D long reads or RCA consensus sequence in fastq/fasta format
+  * `long_read.fq/fa`: 1D long reads or RCA consensus sequences in fastq/fasta format
   * `ref.fa`: reference genome
   * (optional) `anno.gtf`: gene annotation file in GTF format
   * (optional) `n_threads`: number of threads to use
@@ -182,7 +182,8 @@ perl ESPRESSO_Q.pl -L esp_output_dir/for_esp_input.updated \
                    -A anno.gtf -T n_threads            \
                    -V esp_output_dir/esp_cmpt.tsv
 ```
-* Note that `-V esp_cmpt.tsv` is optional in `ESPRESSO Q` step, but it is required if you want NanoHunter to output gene/transcript quantification information.
+
+**Note that `-V esp_cmpt.tsv` is optional in `ESPRESSO Q` step, but it is required if you want NanoHunter to output gene/transcript quantification information.**
 
 ## 1. Barcode & UMI calling
 NanoHunter identifies barcode and UMI from sorted alignment BAM file of single-cell long reads ***without*** using reference barcode from short-read data. 
@@ -234,7 +235,7 @@ We provide an example [R script](scripts_for_paper/README.md#run_azimuth_pbmcr) 
 **Note that not having cell clusters annotated with cell types does not affect the downstream splicing analyses by scRMATS-long.
 You can simply provide scRMATS-long with the cluster ID for each cell barocde.**
 
-Here is an example of output file of this step, `bc_to_cell_type.tsv`:
+Here is an example of output file for this step, `bc_to_cell_type.tsv`:
 
 |barcode| cell type|
 |-|-|
