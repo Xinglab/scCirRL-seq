@@ -4,7 +4,7 @@ import os
 import gzip
 from scipy.sparse import csr_matrix  # for sparse matrix
 from collections import defaultdict as dd
-from .nh_allele_specific_splicing import get_reads_to_hap
+from .allele_specific_splicing import get_reads_to_hap
 
 from .__init__ import __version__
 from .__init__ import __program__
