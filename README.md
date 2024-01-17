@@ -17,7 +17,7 @@ It mainly consists of two parts:
 1. Barcode/UMI calling and gene/transcript quantification
 2. Cell type-specific & allele-specific splicing analysis
 
-<img src="nanohunter-github-workflow.png" width="600">
+<img src="figs/nanohunter-github-workflow.png" width="50%">
 
 NanoHunter is very fast, the barcode/UMI calling step usually takes ~1 hour for 10 million long reads.
 
@@ -370,26 +370,31 @@ After obtaining a list of genes/transcripts of interest (cell-type-specific spli
 gene_mtx <- "output_dir/expression_matrix/gene"
 transcript_mtx <- "output_dir/expression_matrix/transcript"
 # gene and transcripts of interest
-sample_name <- "PGmix"
-gene_CD44 <- "CD44"
-transcripts_CD44 <- c("ENST00000263398", "ENST00000415148")
 source("nanohunter_visualization.R)
 
 # 1. UMAP plot of gene CD44
 gene_umap_plot(gene_mtx_dir = gene_mtx,
-               gene = "CD44",
-               sample_name = sample_name)
+               gene = "CD44")
+```
 
+<img src="figs/PGmix_CD44_gene_umap.png" width="20%">
+
+
+```
 # 2. UMAP plot of transcripts
 trans_umap_plot(gene_mtx_dir = gene_mtx,
                 trans_mtx_dir = transcript_mtx,
-                sample_name = sample_name,
-                trans_list = c("ENST00000263398", "ENST00000415148"))
+                trans_list = c("ENST00000433892", "ENST00000263398"))
+```
 
+<img src="figs/PGmix_CD44_transcripts_umap.png" width="40%">
+
+```
 # 3. UMAP plot of both gene and transcripts
 trans_umap_plot(gene_mtx_dir = gene_mtx,
                 # `trans_mtx_dir` needs to be only one folder or same size as `trans_list`
                 trans_mtx_dir = c(gene_mtx, transcript_mtx, transcript_mtx),
-                sample_name = sample_name,
-                trans_list = c("CD44", "ENST00000263398", "ENST00000415148"))
+                trans_list = c("CD44", "ENST00000433892", "ENST00000263398"))
 ```
+
+<img src="figs/PGmix_CD44_gene_transcripts_umap.png" width="60%">
