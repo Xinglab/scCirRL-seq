@@ -403,3 +403,15 @@ nanohunter_umap_plot(gene_mtx_dir = gene_mtx,
 ```
 
 <img src="figs/PGmix_CD44_gene_transcripts_umap.png" width="60%">
+
+Note that, for `gene_mtx_dir` and `feature_mtx_dir`, you can also provide with Seurat object instead of maxtrix folder.
+
+```
+gene_obj = make_seurat_obj(gene_mtx)
+transcript_obj = make_seurat_obj(transcript_mtx)
+
+nanohunter_umap_plot(gene_mtx_dir = gene_obj,
+                     # `feature_mtx_dir` needs to be only one folder or same size as `feature_list`
+                     feature_mtx_dir = c(gene_obj, transcript_obj, transcript_obj),
+                     feature_list = c("CD44", "ENST00000433892", "ENST00000263398"))
+```
