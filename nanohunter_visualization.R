@@ -12,7 +12,7 @@ umap_dot_blue_cols <- c("#eeecec", "#4292C6", "#084594")
 
 append_list <- function(x, y) {
     if (length(x) == 0) {
-        x <- y
+        x <- c(y)
     } else {
         x <- append(x, y)
     }
@@ -77,9 +77,9 @@ feature_plot <- function(seurat_vec,
             margin = unit(c(0.1, 0.3, 0, 0.2), "cm")
         }
         seurat_obj = seurat_vec[[i]]
-        feature = feature_list[i]
-        label = feature_label_list[i]
-        
+        feature = feature_list[[i]]
+        label = feature_label_list[[i]]
+
         if (i %in% full_idx) {
              pl <- FeaturePlot(seurat_obj, pt.size=pt_size, cells=cells, 
                           features = feature,
@@ -141,7 +141,7 @@ feature_plot <- function(seurat_vec,
 nanohunter_umap_plot <- function(gene_mtx_dir, 
                                  feature_mtx_dir, 
                                  feature_list, 
-                                 feature_label_list=c(), 
+                                 feature_label_list=list(), 
                                  umap_col=umap_dot_red_cols, 
                                  text_pos="left", 
                                  text_rot=0, 
@@ -151,7 +151,7 @@ nanohunter_umap_plot <- function(gene_mtx_dir,
     } else if (length(feature_list) != length(feature_label_list)) {
         stop("feature_list must have same length as feature_label_list.")
     }
-    feature_mtx_dirs <- c()
+    feature_mtx_dirs <- list()
     if (length(feature_list) > 1 && length(feature_mtx_dir) == 1) {
         for (i in seq_along(feature_list)) {
             feature_mtx_dirs <- c(feature_mtx_dirs, feature_mtx_dir)
