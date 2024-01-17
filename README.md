@@ -39,7 +39,7 @@ It mainly consists of two parts:
     - [1.1 Input](#11-input)
     - [1.2 Command](#12-command)
     - [1.3 Output](#13-output)
-  - [2. Cell clustering and annotating](#2-cell-clustering-and-annotating)
+  - [2. Cell clustering and annotation](#2-cell-clustering-and-annotation)
   - [3. Cell type-specific splicing analysis](#3-cell-type-specific-splicing-analysis)
     - [3.1 Input](#31-input)
     - [3.2 Command](#32-command)
@@ -222,10 +222,10 @@ Example of `bc_umi.tsv`:
 | ATCACGACACTTTAGG | ATCACATCCATG | 3 | ENST00000407249, ENST00000341832 | ENSG00000248333 | CDK11B | 741aa2c2-5840-4a29-bd90-3bdcb71604ba, 05f8432a-7f7e-446d-a6d5-8ab9e4eb5102, 6bb13ee1-7397-435c-8840-aeb2a90cf4ab |
 
 
-## 2. Cell clustering and annotating
-All the downstream single-cell long-read analysis rely on the cell type clustering result, which could be acomplished by running [Seurat](https://satijalab.org/seurat/) on the the gene expression matrix and annotating the cell clusters manually or based on known reference annotation like [Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
+## 2. Cell clustering and annotation
+All the downstream single-cell long-read analysis rely on the cell type clustering result, which could be acomplished by running [Seurat](https://satijalab.org/seurat/) on the gene expression matrix and annotating the cell clusters manually or based on known reference annotation like [Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
 
-For example, for human peripheral blood mononuclear cells (PBMC), the clustering and annotating result can be obtained by mapping to Azimuth human PBMC reference dataset. 
+For example, for human peripheral blood mononuclear cells (PBMC), the clustering and annotation result can be obtained by mapping to Azimuth human PBMC reference dataset. 
 <!-- (https://github.com/Xinglab/NanoHunter/tree/main/scripts_for_paper#run_azimuth.R) -->
 We provide the [R script](scripts_for_paper/README.md#run_azimuth_pbmcr) for human PBMC data. For data from other species/tissues, this needs to be done manually by users.
 
