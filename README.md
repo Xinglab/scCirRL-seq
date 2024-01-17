@@ -372,30 +372,31 @@ transcript_mtx <- "output_dir/expression_matrix/transcript"
 # script for UMAP plot
 source("nanohunter_visualization.R)
 
-# 1. UMAP plot of gene CD44
-gene_umap_plot(gene_mtx_dir = gene_mtx,
-               gene = "CD44")
+# 1. UMAP plot of gene VIM and EPCAM
+nanohunter_umap_plot(gene_mtx_dir = gene_mtx,
+                     feature_mtx_dir = gene_mtx,
+                     feature_list = c("VIM", "EPCAM"))
 ```
 
-<img src="figs/PGmix_CD44_gene_umap.png" width="20%">
+<img src="figs/PGmix_VIM_EPCAM_gene_umap.png" width="40%">
 
 
 ```
-# 2. UMAP plot of transcripts
-trans_umap_plot(gene_mtx_dir = gene_mtx,
-                # `trans_mtx_dir` needs to be only one folder or same size as `trans_list`
-                trans_mtx_dir = transcript_mtx,
-                trans_list = c("ENST00000433892", "ENST00000263398"))
+# 2. UMAP plot of CD44 transcripts
+nanohunter_umap_plot(gene_mtx_dir = gene_mtx,
+                     # `feature_mtx_dir` needs to be only one folder or same size as `feature_list`
+                     feature_mtx_dir = transcript_mtx,
+                     feature_list = c("ENST00000433892", "ENST00000263398"))
 ```
 
 <img src="figs/PGmix_CD44_transcripts_umap.png" width="40%">
 
 ```
-# 3. UMAP plot of both gene and transcripts
-trans_umap_plot(gene_mtx_dir = gene_mtx,
-                # `trans_mtx_dir` needs to be only one folder or same size as `trans_list`
-                trans_mtx_dir = c(gene_mtx, transcript_mtx, transcript_mtx),
-                trans_list = c("CD44", "ENST00000433892", "ENST00000263398"))
+# 3. UMAP plot of both CD44 gene and transcripts
+nanohunter_umap_plot(gene_mtx_dir = gene_mtx,
+                     # `feature_mtx_dir` needs to be only one folder or same size as `feature_list`
+                     feature_mtx_dir = c(gene_mtx, transcript_mtx, transcript_mtx),
+                     feature_list = c("CD44", "ENST00000433892", "ENST00000263398"))
 ```
 
 <img src="figs/PGmix_CD44_gene_transcripts_umap.png" width="60%">
