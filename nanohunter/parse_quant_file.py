@@ -1,6 +1,8 @@
 import sys
 import os
 from collections import defaultdict as dd
+from .parameter import nanohunter_para
+from .utils import err_log_format_time
 
 filtered_cates = []  # single-exon/NCD/NIC/NNC/ISM/FSM
 
@@ -56,15 +58,21 @@ def get_gene_name(in_gtf):
     return anno_gene_id_to_name
 
 
-def get_trans_to_gene(updated_gtf, anno_gtf):
+def collect_trans_to_gene(nh_para=nanohunter_para()):
+    anno_gtf = nh_para.anno_gtf
+    updated_gtf = nh_para.updated_gtf
+
+    
     anno_gene_id_to_name = dict()
     trans_to_gene_id_name = dict()
     
     if os.path.exists(anno_gtf):
+        err_log_format_time(nh_para.log_fn, __name__, 'Collecting gene information from {}'.format(anno_gtf))
         anno_gene_id_to_name = get_gene_name(anno_gtf)
     else:
-        sys.stderr.write('Warning: annotation GTF file not found, will use gene_id as gene_name.\n')
+        err_log_format_time(nh_para.log_fn, 'Warning', 'No annotation GTF file found.')
     if os.path.exists(updated_gtf):
+        err_log_format_time(nh_para.log_fn, __name__, 'Collecting transcript information from {}'.format(updated_gtf))
         with open(updated_gtf) as fp:
             for line in fp:
                 if line.startswith('#'):
@@ -93,18 +101,21 @@ def get_trans_to_gene(updated_gtf, anno_gtf):
                 if trans_id and gene_id and gene_name:
                     trans_to_gene_id_name[trans_id] = {'id': gene_id, 'name': gene_name}
     else:
-        sys.stderr.write('Warning: updated GTF file not found, no gene information will be output.\n')
+        err_log_format_time(nh_para.log_fn, 'Warning', 'No updated GTF file found, no gene/transcript information will be output.')
     return trans_to_gene_id_name
 
 
 # for ISOQUANT, read may show up in multiple lines with different isoforms
 # for ESPRESSO, read only show up in one line, may follow by multiple isoforms
-def get_read_to_trans(cmpt_iso_fn, trans_to_gene_id_name, is_isoquant):
-    read_to_trans = dd(lambda: [])
+def collect_read_to_trans(trans_to_gene_id_name, nh_para=nanohunter_para()):
+    cmpt_iso_fn = nh_para.cmpt_tsv
+    is_isoquant = nh_para.isoquant
     # NA_idx = 0
-    if os.path.exists(cmpt_iso_fn) is False:
-        sys.stderr.write('Warning: no quantification file found: {}\nNo compatible transcripts will be output.\n'.format(cmpt_iso_fn))
-        return read_to_trans
+    if not os.path.exists(cmpt_iso_fn):
+        err_log_format_time(nh_para.log_fn, 'Warning', 'No read-isoform compatible file found, no gene/transcript quantification will be output.')
+        return None
+    read_to_trans = dd(lambda: [])
+    err_log_format_time(nh_para.log_fn, __name__, 'Collecting compatible transcripts from {}'.format(cmpt_iso_fn))
     with open(cmpt_iso_fn) as fp:
         for line in fp:
             if line.startswith('#'):

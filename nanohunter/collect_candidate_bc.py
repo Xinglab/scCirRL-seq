@@ -6,9 +6,8 @@ import edlib as ed
 
 from . import seq_utils as su
 from . import utils as ut
+from .parameter import nanohunter_para
 
-
-max_clip_len = su._max_clip_len  # 200
 
 def get_knee_point(umi_cnts):
     if len(umi_cnts) < 10:
@@ -117,30 +116,37 @@ def write_perfect_bu_cnt(bc_to_umi_cnt, bu_fn):
             fp.write('{}\t{}\t{}\n'.format(bc, rank, bc_to_umi_cnt[bc]))
 
 #       read_to_map_pos: {read: (ref, start, end)}
-def collect_perfect_bc(in_sam_fn, bc_len, umi_len, max_clip_len):
+def collect_perfect_bc(in_sam_fn, five_ada, bc_len, umi_len, max_clip_len, use_all_alignments):
     perfect_bc_umi_to_read = dd(lambda: dd(lambda: []))  # {BC: {UMI: [reads]}}
     n_perfect_reads = 0
 
     with ps.AlignmentFile(in_sam_fn) as in_sam:  # one read may be processed multiple times in mp
         for r in in_sam:
-            if r.is_unmapped or r.is_supplementary or r.is_secondary:
+            if r.is_unmapped:
                 continue
-            if (r.cigar[0][0] == ps.CSOFT_CLIP and r.cigar[0][1]) > max_clip_len or (r.cigar[-1][0] == ps.CSOFT_CLIP and r.cigar[-1][1] > max_clip_len):
-                continue
+            if not use_all_alignments:
+                if r.is_supplementary or r.is_secondary:
+                    continue
+                if (r.cigar[0][0] == ps.CSOFT_CLIP and r.cigar[0][1]) > max_clip_len or (r.cigar[-1][0] == ps.CSOFT_CLIP and r.cigar[-1][1] > max_clip_len):
+                    continue
             qname = r.query_name
             # sys.stderr.write('qname\t{}\n'.format(qname))
             # if qname == 'bcb94ec6-8ff4-4f55-a173-ff4c63a51d63_rep0_2.6':
                 # print('ok')
-            bc, umi = su.get_perfect_bu(r, bc_len, umi_len)
+            bc, umi = su.get_perfect_bu(r, five_ada, bc_len, umi_len)
             if bc and umi:
                 perfect_bc_umi_to_read[bc][umi].append(qname)
                 n_perfect_reads += 1
     return perfect_bc_umi_to_read, n_perfect_reads
 
 
-def sp_collect_cand_ref_bc(in_sam_fn, bc_len, umi_len, max_clip_len, conf_bu_fn):
-    ut.err_format_time(__name__, "Collecting perfect barcodes ...")
-    perfect_bc_umi_to_read, n_perfect_reads = collect_perfect_bc(in_sam_fn, bc_len, umi_len, max_clip_len)
+def sp_collect_cand_ref_bc(nh_para=nanohunter_para()):
+    in_sam_fn, five_ada, bc_len, umi_len, = nh_para.long_bam, nh_para.five_ada, nh_para.bc_len, nh_para.umi_len
+    max_clip_len, use_all_alignments, high_qual_bu_fn = nh_para.max_clip_len, nh_para.all_alignments, nh_para.high_qual_bu_fn
+
+    ut.err_log_format_time(nh_para.log_fn, __name__, "Collecting candidate cell barcodes ...")
+    
+    perfect_bc_umi_to_read, n_perfect_reads = collect_perfect_bc(in_sam_fn, five_ada, bc_len, umi_len, max_clip_len, use_all_alignments)
     perfect_bc_to_umi_cnt = dd(lambda: 0)
     for bc in perfect_bc_umi_to_read:
         umis = list(perfect_bc_umi_to_read[bc].keys())
@@ -152,10 +158,11 @@ def sp_collect_cand_ref_bc(in_sam_fn, bc_len, umi_len, max_clip_len, conf_bu_fn)
     perfect_bc_to_cumulative_umi_cnt = get_cumulative_cnt(perfect_bc_to_umi_cnt.values(), max_n=10000, min_cnt=2)  # TODO max_n
     # first knee rank
     perfect_knee_bc_rank = get_knee_point(perfect_bc_to_cumulative_umi_cnt)  # multi by 1.1?
-    ut.err_format_time(__name__, 'Knee point barcode rank: {} (detected from {} barcodes, {} perfect reads)'.format(perfect_knee_bc_rank, len(perfect_bc_to_cumulative_umi_cnt), n_perfect_reads))
+    ut.err_log_format_time(nh_para.log_fn, __name__, 'Knee point barcode rank: {} (detected from {} barcodes, {} high-quality reads)'.format(perfect_knee_bc_rank, len(perfect_bc_to_cumulative_umi_cnt), n_perfect_reads))
+    
     if perfect_knee_bc_rank is None:
         return []
-    write_perfect_bu_cnt(perfect_bc_to_umi_cnt, conf_bu_fn)
+    write_perfect_bu_cnt(perfect_bc_to_umi_cnt, high_qual_bu_fn)
     ref_bcs = list(perfect_bc_to_umi_cnt.keys())[:perfect_knee_bc_rank]
     # merged_perfect_bc_to_umi_count = cand_ref_bc_merge(perfect_bc_to_umi_cnt, perfect_knee_bc_rank, perfect_bc_umi_to_read, read_to_map_pos)
 
@@ -167,10 +174,11 @@ def sp_collect_cand_ref_bc(in_sam_fn, bc_len, umi_len, max_clip_len, conf_bu_fn)
     # ut.err_format_time(__name__, 'Second knee rank: {} ({})'.format(extended_ref_bc_rank, ref_knee_bc_rank))
     # write_perfect_bu_cnt(merged_perfect_bc_to_umi_count, conf_bu_fn)
     # ref_bcs = list(merged_perfect_bc_to_umi_count.keys())[:extended_ref_bc_rank]
-    ut.err_format_time(__name__, "Collecting reference barcodes done!")
+    ut.err_log_format_time(nh_para.log_fn, __name__, "Collecting candidate cell barcodes done! ({})".format(len(ref_bcs)))
     return ref_bcs
 
 
-def collect_cand_ref_bc(bc_len, umi_len, max_clip_len, in_sam_fn, conf_bu_fn):
-    ref_bcs = sp_collect_cand_ref_bc(in_sam_fn, bc_len, umi_len, max_clip_len, conf_bu_fn)
+def collect_cand_ref_bc(nh_para=nanohunter_para()):
+    # bc_len, umi_len, max_clip_len, use_all_alignments, in_sam_fn, high_qual_bu_fn):
+    ref_bcs = sp_collect_cand_ref_bc(nh_para) #in_sam_fn, bc_len, umi_len, max_clip_len, use_all_alignments, high_qual_bu_fn)
     return ref_bcs

@@ -350,7 +350,7 @@ def cluster_wise_differential_splice(gene_trans_clu_cnt, all_cell_types,
                 for clu, cnt in clu_cnt.items():
                     clu_to_cnts[clu] += cnt
         gene_fp.write('gene_id\tgene_name\tgene_fdr\tmax_delta_ratio\ttranscript_ids\tcell1_counts\tcell2_counts\tcell1_ratios\tcell2_ratios\tcell_type1\tcell_type2\n')
-        trans_fp.write('gene_id\tgene_name\ttranscript_id\tgene_fdr\ttranscript_p\tdelta_ratio\tcount1\tcount2\tratio1\tratio2\tcell_type1\tcell_type2\n')
+        trans_fp.write('gene_id\tgene_name\ttranscript_id\tgene_fdr\ttranscript_pval\tdelta_ratio\tcount1\tcount2\tratio1\tratio2\tcell_type1\tcell_type2\n')
         for (ct1, ct2) in pairwise_cell_types:
             if ct2 < ct1:
                 ct1, ct2 = ct2, ct1

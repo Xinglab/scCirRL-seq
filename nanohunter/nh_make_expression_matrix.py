@@ -4,6 +4,7 @@ import os
 import gzip
 from scipy.sparse import csr_matrix  # for sparse matrix
 from collections import defaultdict as dd
+from .nh_allele_specific_splicing import get_reads_to_hap
 
 from .__init__ import __version__
 from .__init__ import __program__
@@ -14,6 +15,16 @@ theta_base = 1e6
 max_iter = 10000
 
 default_cluster = 'cluster_0'
+
+class nh_matrix_data:
+    def __init__(self, row, col, data, bc, names):
+        self.row = row
+        self.col = col
+        self.data = data
+        self.bc = bc
+        self.names = names
+    def write_matrix_data(self, out_dir):
+         write_10X_sparse_matrix(self.row, self.col, self.data, self.names, self.bc, out_dir)
 
 # return: all_bc, bu_to_trans
 def get_bu_cmpt(in_bu_cmpt, bc_to_cluster):
@@ -41,6 +52,48 @@ def get_bu_cmpt(in_bu_cmpt, bc_to_cluster):
             i += 1
     return list(all_bc.keys()), bu_to_trans, gene_to_trans
 
+def get_hap(qnames, read_to_hap):
+    hap_to_read_cnt = dd(lambda: 0)
+    for qname in qnames.rsplit(','):
+        if qname in read_to_hap:
+            hap_to_read_cnt[read_to_hap[qname]] += 1
+
+    hap_to_read_cnt = dict(sorted(hap_to_read_cnt.items(), key=lambda d: -d[1]))
+    if len(hap_to_read_cnt) == 0:  # no hap
+        return 'none'
+    elif len(hap_to_read_cnt) > 1:  # 2 haps
+        if list(hap_to_read_cnt.values())[0] > list(hap_to_read_cnt.values())[1]:
+            return list(hap_to_read_cnt.keys())[0]
+        else:
+            return 'none'
+    else:  # 1 hap
+        return list(hap_to_read_cnt.keys())[0]
+    
+def get_bu_hap_cmpt(in_bu_cmpt, bc_to_cluster, read_to_hap):
+    cand_bc = list(bc_to_cluster.keys())
+    bu_to_hap_trans = dd(lambda: dd(lambda: ''))
+    gene_to_trans = dd(lambda: set())
+    all_bc = dict()
+    with open(in_bu_cmpt) as fp:
+        i = 0
+        header = True
+        for line in fp:
+            if header:
+                header = False
+                continue
+            ele = line.rsplit()
+            bc, umi, read_cnt, trans_str, gene_id_str, gene_name_str, reads = ele
+            if (cand_bc != [] and bc not in cand_bc) or trans_str == 'NA' or gene_id_str == 'NA' or ',' in gene_id_str:
+                continue
+            hap = get_hap(reads, read_to_hap)
+            umi = umi + str(i)
+            trans = trans_str.rsplit(',')
+            gene = gene_id_str + ',' + gene_name_str
+            bu_to_hap_trans[gene][(bc, umi, hap)] = trans
+            gene_to_trans[gene] = gene_to_trans[gene].union(set(trans))
+            all_bc[bc] = 1
+            i += 1
+    return list(all_bc.keys()), bu_to_hap_trans, gene_to_trans
 
 # read:bc:cellType
 def parse_cell_cluster(in_fn):
@@ -279,6 +332,62 @@ def em_frac_abun1(gene, all_trans, bu_to_trans, cluster, bc_to_cluster):  # tran
             break
     return bc_trans_abun
 
+def hap_em_frac_abun1(gene, all_trans, bu_to_hap_trans, cluster, bc_to_cluster):  # trans_to_reads, read_to_bu):
+    n_trans = len(all_trans)
+    # XXX record read_to_trans each-read-wise,
+    # instead of simply using the count sum
+    # this is for furture use of P(read|iso)
+
+    # initial theta
+    cur_thetas = dict()
+    for trans in all_trans:
+        cur_thetas[trans] = theta_base / n_trans
+        # for read in trans_to_reads[trans]:
+        #     if trans not in read_to_trans:
+        #         read_to_trans[read].append(trans)
+
+    # EM loop
+    n_iter = 0
+    cur_trans_abun = dd(lambda: 0.0)
+    bc_hap_trans_abun = dd(lambda: dd(lambda: dd(lambda: 0.0)))
+    if len(bu_to_hap_trans) == 0:
+        return bc_hap_trans_abun
+    while True:
+        n_iter += 1
+        # E-step:
+        # calculate fractional counts based on current thetas
+        cur_trans_abun = dd(lambda: 0.0)
+        bc_hap_trans_abun = dd(lambda: dd(lambda: dd(lambda: 0.0)))
+        for (bc, umi, hap), cmpt_trans in bu_to_hap_trans.items():
+            if bc_to_cluster[bc] != cluster:
+                continue
+            total = sum([cur_thetas[trans] for trans in cmpt_trans])
+            for trans in cmpt_trans:
+                cur_trans_abun[trans] += theta_base * (cur_thetas[trans] / total)
+                bc_hap_trans_abun[bc][trans][hap] += theta_base * (cur_thetas[trans] / total)
+
+        # M-step:
+        # update the probability of each isoform
+        total = sum(cur_trans_abun.values())
+        if total == 0.0:
+            return bc_hap_trans_abun
+        new_thetas = dict()
+        for trans in all_trans:
+            new_thetas[trans] = theta_base * cur_trans_abun[trans] / total
+
+        # iteration stop check
+        delta = 0
+        for trans in all_trans:
+            delta += abs(cur_thetas[trans] - new_thetas[trans])
+            cur_thetas[trans] = new_thetas[trans]
+        if delta < delta_thres * theta_base:
+            return bc_hap_trans_abun
+            break
+
+        if n_iter > max_iter:
+            # sys.stderr.write('{}:\t{}\n'.format(gene, '\t'.join(all_trans)))
+            break
+    return bc_hap_trans_abun
 
 def get_full_length_cnt(all_trans, trans_to_reads):
     read_to_trans = dd(lambda: [])
@@ -330,12 +439,63 @@ def write_10X_sparse_matrix(matrix_row, matrix_col, matrix_data, names, all_bc, 
         for bc in all_bc:
             fp.write('{}\n'.format(bc))
 
+def make_matrix_data_with_hap_em(all_bc, bc_to_cluster, bu_to_hap_trans, gene_to_trans):
+    all_clusters = list(set(bc_to_cluster.values()))
+    hap_to_gene_mtx_data = dd(lambda: dd(lambda: nh_matrix_data)) # {hap: {gene: mxt_data}}
+    hap_to_trans_mtx_data = dd(lambda: dd(lambda: nh_matrix_data)) # {hap: {gene: mxt_data}}
+    if all_clusters == []:
+        all_clusters = [default_cluster]
+    
+    gene_i, trans_i = 1, 1  # matrix_row
 
-def em_frac_abun(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans, out_dir):
-    # with open(gene_out_fn, 'w') as gene_out_fp, open(iso_out_fn, 'w') as iso_out_fp:
-    # gene_out_fp.write('Gene\t{}\n'.format('\t'.join(all_bc)))
-    # iso_out_fp.write('Isoform\t{}\n'.format('\t'.join(all_bc)))
+    hap_gene_matrix_row, hap_gene_matrix_col, hap_gene_matrix_data, gene_names = dd(lambda: []), dd(lambda: []), dd(lambda: []), []
+    hap_iso_matrix_row, hap_iso_matrix_col, hap_iso_matrix_data, iso_names = dd(lambda: []), dd(lambda: []), dd(lambda: []), []
+    for gene, all_trans in gene_to_trans.items():
+        all_trans = list(all_trans)
+        gene_id, gene_name = gene.rsplit(',')
+        bc_to_hap_gene_abun = dd(lambda: dd(lambda: 0))
+        bc_to_hap_trans_abun = dd(lambda: dd(lambda: dd(lambda: 0)))
+        hap_trans_total_cnt = dd(lambda: dd(lambda: 0.0))
+        for cluster in all_clusters:  # EM within each group and each gene
+            bc_hap_trans_abun = hap_em_frac_abun1(gene_name, all_trans, bu_to_hap_trans[gene], cluster, bc_to_cluster)
+            for bc in bc_hap_trans_abun:
+                for trans in bc_hap_trans_abun[bc]:
+                    for hap in ['H1', 'H2', 'none']:
+                        bc_to_hap_gene_abun[bc][hap] += bc_hap_trans_abun[bc][trans][hap]
+                        bc_to_hap_trans_abun[bc][trans][hap] += bc_hap_trans_abun[bc][trans][hap]
+                        hap_trans_total_cnt[trans][hap] += bc_hap_trans_abun[bc][trans][hap]/theta_base
+        for bc in bc_to_hap_gene_abun:
+            for hap in ['H1', 'H2', 'none']:
+                gene_abun = bc_to_hap_gene_abun[bc][hap]
+                if gene_abun == 0.0:
+                    continue
+                hap_gene_matrix_row[hap].append(gene_i)
+                hap_gene_matrix_col[hap].append(all_bc.index(bc)+1)
+                hap_gene_matrix_data[hap].append(gene_abun/theta_base)
+        gene_names.append(gene_id + '\t' + gene_name)
+        gene_i += 1
 
+        for bc in bc_to_hap_trans_abun:
+            for hap in ['H1', 'H2', 'none']:
+                gene_abun = bc_to_hap_gene_abun[bc][hap]
+                if gene_abun == 0.0:
+                    continue
+                for trans in bc_to_hap_trans_abun[bc]:
+                    trans_abun = bc_to_hap_trans_abun[bc][trans][hap]
+                    if trans_abun == 0.0:
+                        continue
+                    hap_iso_matrix_row[hap].append(trans_i + all_trans.index(trans))
+                    hap_iso_matrix_col[hap].append(all_bc.index(bc)+1)
+                    hap_iso_matrix_data[hap].append(trans_abun/theta_base)
+        for trans in all_trans:
+            iso_names.append(trans + '\t' + trans)
+        trans_i += len(all_trans)
+    for hap in ['H1', 'H2', 'none']:
+        hap_to_gene_mtx_data[hap] = nh_matrix_data(hap_gene_matrix_row[hap], hap_gene_matrix_col[hap], hap_gene_matrix_data[hap], all_bc, gene_names)
+        hap_to_trans_mtx_data[hap] = nh_matrix_data(hap_iso_matrix_row[hap], hap_iso_matrix_col[hap], hap_iso_matrix_data[hap], all_bc, iso_names)
+    return hap_to_gene_mtx_data, hap_to_trans_mtx_data
+
+def make_matrix_data_with_em(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans):
     gene_matrix_row, gene_matrix_col, gene_matrix_data, gene_names = [], [], [], []
     iso_matrix_row, iso_matrix_col, iso_matrix_data, iso_ratio_matrix_data, iso_names = [], [], [], [], []
     all_clusters = list(set(bc_to_cluster.values()))
@@ -348,7 +508,6 @@ def em_frac_abun(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans, out_dir):
         gene_id, gene_name = gene.rsplit(',')
         bc_to_gene_abun = dd(lambda: 0)
         bc_to_trans_abun = dd(lambda: dd(lambda: 0))
-        # gene_full_cnt, gene_total_cnt, trans_full_cnt = get_full_length_cnt(all_trans, trans_to_reads)
         trans_total_cnt = dd(lambda: 0.0)
         for cluster in all_clusters:  # EM within each group and each gene
             bc_trans_abun = em_frac_abun1(gene_name, all_trans, bu_to_trans[gene], cluster, bc_to_cluster)
@@ -357,7 +516,6 @@ def em_frac_abun(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans, out_dir):
                     bc_to_gene_abun[bc] += bc_trans_abun[bc][trans]
                     bc_to_trans_abun[bc][trans] += bc_trans_abun[bc][trans]
                     trans_total_cnt[trans] += bc_trans_abun[bc][trans]/theta_base
-        # for bc_i, bc in enumerate(all_bc):
         for bc, gene_abun in bc_to_gene_abun.items():
             if gene_abun == 0.0:
                 continue
@@ -380,21 +538,14 @@ def em_frac_abun(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans, out_dir):
                 iso_matrix_data.append(trans_abun/theta_base)
                 iso_ratio_matrix_data.append(trans_abun/gene_abun)
         for trans in all_trans:
-            # iso_names.append(gene_id + ',' + trans + '\t' + gene_name + ',' + trans)
             iso_names.append(trans + '\t' + trans)
         trans_i += len(all_trans)
-    write_10X_sparse_matrix(gene_matrix_row, gene_matrix_col, gene_matrix_data, gene_names, all_bc, out_dir+'/gene')
-    write_10X_sparse_matrix(iso_matrix_row, iso_matrix_col, iso_matrix_data, iso_names, all_bc, out_dir+'/transcript')
-    write_10X_sparse_matrix(iso_matrix_row, iso_matrix_col, iso_ratio_matrix_data, iso_names, all_bc, out_dir+'/transcript_ratio')
-        # gene_out_fp.write('{}'.format(gene))
-        # for bc in all_bc:
-        #     gene_out_fp.write('\t{}'.format(bc_to_gene_abun[bc]/theta_base))
-        # gene_out_fp.write('\n')
-        # for trans in all_trans:
-        #     iso_out_fp.write('{},{}'.format(gene, trans))
-        #     for bc in all_bc:
-        #         iso_out_fp.write('\t{}'.format(bc_to_trans_abun[bc][trans]/theta_base))
-        #     iso_out_fp.write('\n')
+    gene_mtx_data = nh_matrix_data(gene_matrix_row, gene_matrix_col, gene_matrix_data, all_bc, gene_names)
+    trans_mtx_data = nh_matrix_data(iso_matrix_row, iso_matrix_col, iso_matrix_data, all_bc, iso_names)
+    return gene_mtx_data, trans_mtx_data
+    # write_10X_sparse_matrix(gene_matrix_row, gene_matrix_col, gene_matrix_data, gene_names, all_bc, out_dir+'/gene')
+    # write_10X_sparse_matrix(iso_matrix_row, iso_matrix_col, iso_matrix_data, iso_names, all_bc, out_dir+'/transcript')
+    # write_10X_sparse_matrix(iso_matrix_row, iso_matrix_col, iso_ratio_matrix_data, iso_names, all_bc, out_dir+'/transcript_ratio')
 
 
 def parser_argv():
@@ -402,28 +553,43 @@ def parser_argv():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="{}: make sparsed count matrix at both gene and transcript levels".format(os.path.basename(__file__)))
     parser.add_argument('bu_tsv', metavar='bc_umi.tsv', type=str, help='Output file of NanoHunter')
     parser.add_argument('out_dir', metavar='matrix_output_dir', type=str, help='Folder to output single-cell gene/transcript matrix')
-    parser.add_argument('-c', '--bc-cluster', type=str, default='', help='List of cell barcode and corresponding cluster (can be used for cell cluster-wise transcript EM abundance estimation)')
+    parser.add_argument('-c', '--bc-cluster', type=str, default='', help='List file of cell barcode and corresponding cluster (can be used for cell cluster-wise transcript EM abundance estimation)')
+    parser.add_argument('-a', '--hap-list', type=str, default='', help='List file of assigned haplotype for each read, generated by whatshap (can be used for haplotype-wise gene/transcript matrix generation)')
 
     return parser.parse_args()
 
 
-def make_10X_matrix(bu_fn, cell_to_cluster_tsv, out_dir):
+def make_10X_matrix(cell_to_cluster_tsv, hap_list_tsv, bu_fn, out_mtx_dir):
     bc_to_cluster = parse_cell_cluster(cell_to_cluster_tsv)
-    all_bc, bu_to_trans, gene_to_trans = get_bu_cmpt(bu_fn, bc_to_cluster)
+    if not os.path.exists(out_mtx_dir):
+        os.mkdir(out_mtx_dir)
+    # write_gene_to_trans_tsv(gene_to_trans, out_dir+'/transcript_ratio')
+    if hap_list_tsv:
+        read_to_hap = get_reads_to_hap(hap_list_tsv)
+        all_bc, bu_to_hap_trans, gene_to_trans = get_bu_hap_cmpt(bu_fn, bc_to_cluster, read_to_hap)
+    else:
+        all_bc, bu_to_trans, gene_to_trans = get_bu_cmpt(bu_fn, bc_to_cluster)
 
-    if not os.path.exists(out_dir):
-        os.mkdir(out_dir)
-    write_gene_to_trans_tsv(gene_to_trans, out_dir+'/transcript')
-    write_gene_to_trans_tsv(gene_to_trans, out_dir+'/transcript_ratio')
-    em_frac_abun(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans, out_dir)
+    if hap_list_tsv:
+        hap_to_gene_mtx_data, hap_to_trans_mtx_data = make_matrix_data_with_hap_em(all_bc, bc_to_cluster, bu_to_hap_trans, gene_to_trans)
+        for hap in ['H1', 'H2', 'none']:
+            hap_to_gene_mtx_data[hap].write_matrix_data(out_mtx_dir+'/gene_haplotype_'+hap)
+            hap_to_trans_mtx_data[hap].write_matrix_data(out_mtx_dir+'/transcript_haplotype_'+hap)
+            write_gene_to_trans_tsv(gene_to_trans, out_mtx_dir+'/transcript_haplotype_'+hap)
+    else:
+        gene_mtx_data, trans_mtx_data = make_matrix_data_with_em(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans) 
+        gene_mtx_data.write_matrix_data(out_mtx_dir+'/gene')
+        trans_mtx_data.write_matrix_data(out_mtx_dir+'/transcript')
+        write_gene_to_trans_tsv(gene_to_trans, out_mtx_dir+'/transcript')
 
 
 
 def main():
     args = parser_argv()
-    in_bu_fn, out_dir = args.bu_out, args.out_dir
+    bu_fn, out_dir = args.bu_tsv, args.out_dir
     bc_to_cluster_tsv = args.bc_cluster
-    make_10X_matrix(in_bu_fn, bc_to_cluster_tsv, out_dir)
+    hap_list_tsv = args.hap_list
+    make_10X_matrix(bc_to_cluster_tsv, hap_list_tsv, bu_fn, out_dir)
 
 if __name__ == '__main__':
     main()

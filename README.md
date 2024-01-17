@@ -1,13 +1,59 @@
-# NanoHunter
+# NanoHunter: single-cell long-read RNA-seq analysis package
 
-## What is NanoHunter ?
+<!-- [![Latest Release](https://img.shields.io/github/release/xinglab/NanoHunter.svg?label=Release)](https://github.com/xinglab/NanoHunter/releases/latest) -->
+<!-- [![Github All Releases](https://img.shields.io/github/downloads/xinglab/NanoHunter/total.svg?label=Download)](https://github.com/xinglab/NanoHunter/releases) -->
+<!-- [![BioConda Install](https://img.shields.io/conda/dn/bioconda/nanohunter.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/nanohunter) -->
+<!-- [![PyPI](https://img.shields.io/pypi/dm/nanohunter.svg?label=pip%20install)](https://pypi.python.org/pypi/nanohunter) -->
+<!-- [![Published in Bioinformatics](https://img.shields.io/badge/Published%20in-Bioinformatics-blue.svg)](https://dx.doi.org/10.1093/bioinformatics/btaa963) -->
+<!-- [![GitHub Issues](https://img.shields.io/github/issues/xinglab/NanoHunter.svg?label=Issues)](https://github.com/xinglab/NanoHunter/issues) -->
+<!-- [![License](https://img.shields.io/badge/License-MIT-black.svg)](https://github.com/xinglab/NanoHunter/blob/main/LICENSE) -->
+## Updates (v1.0.0)
+
+- First version
+
+## What is NanoHunter
 NanoHunter is an analysis pipeline designed for long-read single-cell RNA-seq data.
-It mainly consists of two part: 
-1. Barcode & UMI calling
-2. Downstream analysis: cell type-specific splicing and allele-specific splicing
+It mainly consists of two parts:
+1. Barcode/UMI calling and gene/transcript quantification
+2. Cell type-specific & allele-specific splicing analysis
 
-<!-- ![workflow](https://github.com/Xinglab/NanoHunter/blob/master/NanoHunter_workflow.png) -->
+<img src="nanohunter-github-workflow.png" width="800">
 
+![workflow](https://github.com/xinglab/NanoHunter/blob/main/nanohunter-github-workflow.png){width=70%}
+
+NanoHunter is very fast, the barcode/UMI calling step usually takes ~1 hour for 10 million long reads.
+
+## Table of Contents
+- [NanoHunter: single-cell long-read RNA-seq analysis package](#nanohunter-single-cell-long-read-rna-seq-analysis-package)
+  - [Updates (v1.0.0)](#updates-v100)
+  - [What is NanoHunter](#what-is-nanohunter)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+    - [Operating system and python version](#operating-system-and-python-version)
+    - [Via conda (install locally for now)](#via-conda-install-locally-for-now)
+    - [Via pip (not work yet)](#via-pip-not-work-yet)
+    - [From source files](#from-source-files)
+  - [(Optional) Consensus calling for RCA single-cell long-read data with TideHunter(≥1.5.4)](#optional-consensus-calling-for-rca-single-cell-long-read-data-with-tidehunter154)
+    - [Input](#input)
+    - [Command](#command)
+  - [0. Pre-process: long-read mapping and transcript identification/quantification](#0-pre-process-long-read-mapping-and-transcript-identificationquantification)
+    - [0.1 Mapping](#01-mapping)
+    - [0.2 Transcript identification and quantification](#02-transcript-identification-and-quantification)
+  - [1. Barcode \& UMI calling](#1-barcode--umi-calling)
+    - [1.1 Input](#11-input)
+    - [1.2 Command](#12-command)
+    - [1.3 Output](#13-output)
+  - [2. Cell clustering and annotating](#2-cell-clustering-and-annotating)
+  - [3. Cell type-specific splicing analysis](#3-cell-type-specific-splicing-analysis)
+    - [3.1 Input](#31-input)
+    - [3.2 Command](#32-command)
+    - [3.3 Output](#33-output)
+  - [4. Allele-specific splicing analysis](#4-allele-specific-splicing-analysis)
+    - [4.1 Phase long reads with `whatshap`](#41-phase-long-reads-with-whatshap)
+    - [4.2 Identifiy allele-specific splicing](#42-identifiy-allele-specific-splicing)
+    - [4.3 Identify disease-associated GWAS SNPs from allele-specific spliced genes](#43-identify-disease-associated-gwas-snps-from-allele-specific-spliced-genes)
+  - [5. Visualization](#5-visualization)
+    - [UMAP of gene and/or transcript](#umap-of-gene-andor-transcript)
 
 ## Installation
 ### Operating system and python version
@@ -74,8 +120,8 @@ TideHunter rca_long_read.fq \
 ```
 
 
-## 0. Pre-process: long-read mapping and transcript identification
-NanoHunter relies on the mapping and transcript identification result of long reads.
+## 0. Pre-process: long-read mapping and transcript identification/quantification
+NanoHunter relies on the mapping and transcript identification/quantification result of long reads.
 ### 0.1 Mapping
 For mapping, we recommend using [minimap2](https://github.com/lh3/minimap2) in RNA splice mode.
 Any other long-read RNA-seq alignment tools can also be used here.
@@ -89,22 +135,55 @@ Any other long-read RNA-seq alignment tools can also be used here.
   
 * Command
 ```
-# convert GTF to BED12 using paftools.js from minimap2
+# 1. convert GTF to BED12 using paftools.js from minimap2
 paftools.js gff2bed anno.gtf > anno_junc.bed12
 
-# mapping with minimap2
+# 2. mapping with minimap2
 minimap2 ref.fa long_read.fq/fa         \
          --junc-bed anno_junc.bed12     \
          -ax splice -ub -k14 -w4        \
          --sam-hit-only --secondary=no  \
          -t n_threads -o long_read.sam
 
-# covert sam to sorted bam
+# 3. convert sam to sorted bam
 samtools view long_read.sam -b long_read.bam
 samtools sort long_read.bam -@ n_threads -o long_read.sorted.bam
 ```
-### 0.2 Transcript identification
+### 0.2 Transcript identification and quantification
+For transcript identification and quantification, we recommend using [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), other tools like [IsoQuant](https://github.com/ablab/IsoQuant) can also be used.
 * Input
+  * `long_read.sorted.bam`: sorted long-read alignment file in BAM format
+  * `ref.fa`: reference genome file in FASTA format
+  * `anno.gtf`: gene annotation file in GTF format 
+  * `esp_output_dir`: output directory
+* Output
+  * `esp_output_dir/esp_cmpt.tsv`: compatible isoforms for all reads
+  * `esp_output_dir/for_esp_input_N2_R0_updated.gtf`: updated GTF annotation
+* Command
+```
+# 1. create tab-separated input file for ESPRESSO
+mkdir esp_output_dir 2> /dev/null
+in_tsv=esp_output_dir/for_esp_input.tsv
+abs_path=$(realpath long_read.sorted.bam)
+base_name=$(basename long_read.sorted.bam)
+echo -e "$abs_path\t$base_name" > $in_tsv
+
+# 2. ESPRESSO S step
+perl ESPRESSO_S.pl -L esp_output_dir/for_esp_input.tsv  \
+                   -F ref.fa -A anno.gtf            \
+                   -M notFilterOutchrM -T n_threads \
+                   -O esp_output_dir
+
+# 3. ESPRESSO C step
+perl ESPRESSO_C.pl -I esp_output_dir -F ref.fa \
+                   -X 0 -T n_threads
+
+# 4. ESPRESSO Q step
+perl ESPRESSO_Q.pl -L esp_output_dir/for_esp_input.updated \
+                   -A anno.gtf -T n_threads            \
+                   -V esp_output_dir/esp_cmpt.tsv
+```
+* Note that `-V esp_cmpt.tsv` is optional in `ESPRESSO Q` step, but it is required if you want NanoHunter to output gene/transcript quantification inforamtion.
 
 ## 1. Barcode & UMI calling
 NanoHunter identifies barcode and UMI from sorted alignment BAM file of single-cell long reads ***without*** using reference barcode from short-read data. 
@@ -113,11 +192,11 @@ For RCA long reads, before barcode/UMI calling, consensus sequences need to be g
 ### 1.1 Input 
 * Required:
   * `long_read.sorted.bam`: sorted long-read BAM (recommend using [minimap2](https://github.com/lh3/minimap2))
-  * `read_isoform_compatible.tsv`: tabular file of compatible isoforms of each read, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso) 
-  * `updated.gtf`: updated GTF annotation, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso)
 * Optional:
-  * `cell_barcode.tsv`: cell barcode list, nanohunter will directly use it to guide the barcode calling, only long reads with cell barcode in the list will be kept
-  * `annotation.gtf`: annotation GTF file, to retrieve gene names. If not provided, NanoHunter will use gene ids as gene names
+  * `read_isoform_compatible.tsv`: tabular file of compatible isoforms for all reads, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso) or IsoQuant
+  * `updated.gtf`: updated GTF annotation, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso) or IsoQuant
+  * `annotation.gtf`: reference annotation GTF file, to retrieve gene names if gene names are not provided in `udpated.gtf`
+  * `cell_barcode.tsv`: reference cell barcode list. If provided, nanohunter will directly use it to guide the barcode calling, only long reads with cell barcodes in the provided list will be kept
   * barcode sequence length (default: 16)
   * max. allowed edit distance between barcode and reference barcode (default: 2)
   * UMI sequence length (default: 12)
@@ -126,10 +205,10 @@ For RCA long reads, before barcode/UMI calling, consensus sequences need to be g
 ### 1.2 Command
 ```
 nanohunter long_read.sorted.bam \
-           updated.gtf          \
-           read_isoform_compatible.tsv \
+           output_dir           \
+           -p updated.gtf          \
+           -m read_isoform_compatible.tsv \
            -g annotation.gtf  \
-           output_dir
 ```
 ### 1.3 Output
 * `bc_umi.bam`: BAM file with barcode/UMI information for each long read, BAM tags: `CB` and `UB`, for barcode and UMI.  Note that only long read with barcode/UMI called are kept
@@ -283,3 +362,36 @@ Example of `*_allele_spliced_gene_gwas_ld/gene.ld`:
 |snp_id| rs3865444| rs2459141| rs12459419| rs2455069| rs7245846| rs33978622| rs34813869| rs1354106| haplotype| chrom| pos| type| gwas_trait| gwas_trait_efo_term| gwas_pvalue|
 |-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|-|
 |rs3865444| 1.0| 0.326844| 1.0| 0.327703| 0.891224| 0.967195| 0.887773| 0.881092| H2| chr19| 51224706| gwas| Alzheimer disease| Neurological disorder| 2e-09
+
+## 5. Visualization
+After obtaining a list of genes/transcripts of interest (cell-type-specific splicing/allele-specific spciling), NanoHunter also offers visualization of your results in the single-cell UMAP space, simlar to the plots from Seurat R package.
+
+### UMAP of gene and/or transcript
+```
+# gene/transcript expression folder generated by NanoHunter
+gene_mtx <- "output_dir/expression_matrix/gene"
+transcript_mtx <- "output_dir/expression_matrix/transcript"
+# gene and transcripts of interest
+sample_name <- "PGmix"
+gene_CD44 <- "CD44"
+transcripts_CD44 <- c("ENST00000263398", "ENST00000415148")
+source("nanohunter_visualization.R)
+
+# 1. UMAP plot of gene CD44
+gene_umap_plot(gene_mtx_dir = gene_mtx,
+               gene = "CD44",
+               sample_name = sample_name)
+
+# 2. UMAP plot of transcripts
+trans_umap_plot(gene_mtx_dir = gene_mtx,
+                trans_mtx_dir = transcript_mtx,
+                sample_name = sample_name,
+                trans_list = c("ENST00000263398", "ENST00000415148"))
+
+# 3. UMAP plot of both gene and transcripts
+trans_umap_plot(gene_mtx_dir = gene_mtx,
+                # `trans_mtx_dir` needs to be only one folder or same size as `trans_list`
+                trans_mtx_dir = c(gene_mtx, transcript_mtx, transcript_mtx),
+                sample_name = sample_name,
+                trans_list = c("CD44", "ENST00000263398", "ENST00000415148"))
+```

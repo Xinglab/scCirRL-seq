@@ -10,6 +10,15 @@ def format_time(fp, header, str):
 def out_format_time(header, str):
     sys.stdout.write('==' + time.strftime(" %H:%M:%S-%b-%d-%Y ", time.localtime()) + '== [' + header + '] ' + str + '\n')
 
+def err_log_format_time(log_fn, header, str):
+    sys.stderr.write('==' + time.strftime(" %H:%M:%S-%b-%d-%Y ", time.localtime()) + '== [' + header + '] ' + str + '\n')
+    if log_fn:
+        try:
+            log_fp = open(log_fn, 'a')
+            log_fp.write('==' + time.strftime(" %H:%M:%S-%b-%d-%Y ", time.localtime()) + '== [' + header + '] ' + str + '\n')
+            log_fp.close()
+        except:
+            pass
 
 def err_format_time(header, str):
     sys.stderr.write('==' + time.strftime(" %H:%M:%S-%b-%d-%Y ", time.localtime()) + '== [' + header + '] ' + str + '\n')

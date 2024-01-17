@@ -1,14 +1,11 @@
 import sys
-# import pyabpoa as pa
 import edlib as ed
 from collections import defaultdict as dd
-import multiprocessing as mp
-
-from . import seq_utils as su
+# import multiprocessing as mp
+# from . import seq_utils as su
 from . import utils as ut
 
 NULL_node_id = -1
-
 
 class UMIDirectionalNetworkNode:
     def __init__(self, umi, reads, trans, node_id):
@@ -76,7 +73,7 @@ def search_for_umi_from_node(umi_graph_id_dict, node_id, umi_max_ed):
 def get_umi_trans(umi, umi_reads, all_read_to_trans):
     read_to_trans = dict()
     for read in umi_reads:
-        if read not in all_read_to_trans:
+        if not all_read_to_trans or read not in all_read_to_trans:
             read_to_trans[read] = ['NA']  # not listed in ESPRESSO, set trans as NA
         else:
             read_to_trans[read] = all_read_to_trans[read]
@@ -91,10 +88,11 @@ def get_umi_trans(umi, umi_reads, all_read_to_trans):
         intersection_trans = intersection_trans.intersection(trans)
 
     if not intersection_trans:  # empty trans set
-        i = 1
-        for read in read_to_trans:
-            sys.stderr.write('Same BC/UMI & different isoforms: {}\t{} ({})\t{}\n'.format(read, umi, i, ','.join(read_to_trans[read])))
-            i += 1
+        # for debug
+        # i = 1
+        # for read in read_to_trans:
+            # sys.stderr.write('Same BC/UMI & different isoforms: {}\t{} ({})\t{}\n'.format(read, umi, i, ','.join(read_to_trans[read])))
+            # i += 1
         return read_to_trans
     else:
         return {','.join(all_reads): intersection_trans}
