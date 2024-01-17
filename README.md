@@ -17,9 +17,7 @@ It mainly consists of two parts:
 1. Barcode/UMI calling and gene/transcript quantification
 2. Cell type-specific & allele-specific splicing analysis
 
-<img src="nanohunter-github-workflow.png" width="800">
-
-![workflow](https://github.com/xinglab/NanoHunter/blob/main/nanohunter-github-workflow.png){width=70%}
+<img src="nanohunter-github-workflow.png" width="600">
 
 NanoHunter is very fast, the barcode/UMI calling step usually takes ~1 hour for 10 million long reads.
 
