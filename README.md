@@ -29,10 +29,8 @@ It mainly consists of two parts:
     - [Via conda (install locally for now)](#via-conda-install-locally-for-now)
     - [Via pip (not work yet)](#via-pip-not-work-yet)
     - [From source files](#from-source-files)
-  - [(Optional) Consensus calling for RCA single-cell long-read data with TideHunter(≥1.5.4)](#optional-consensus-calling-for-rca-single-cell-long-read-data-with-tidehunter154)
-    - [Input](#input)
-    - [Command](#command)
   - [0. Pre-process: long-read mapping and transcript identification/quantification](#0-pre-process-long-read-mapping-and-transcript-identificationquantification)
+    - [0.0 Consensus calling](#00-consensus-calling)
     - [0.1 Mapping](#01-mapping)
     - [0.2 Transcript identification and quantification](#02-transcript-identification-and-quantification)
   - [1. Barcode \& UMI calling](#1-barcode--umi-calling)
@@ -103,12 +101,18 @@ git clone git@github.com:Xinglab/scRMATS-long.git
 cd scRMATS-long && pip install .
 ```
 
-## (Optional) Consensus calling for RCA single-cell long-read data with [TideHunter](https://github.com/yangao07/TideHunter)(≥1.5.4)
-### Input
-* `rca_long_read.fq`: RCA long-read fasta/fastq file
-* `five_prime.fa`, `three_prime.fa`: 5' and 3' sequence of RCA library. If a splint sequence was used, please split the splint sequence into two halves and use them as 5' and 3' sequences. Note that both 5' and 3' sequences need to have an orientation of 5'->3', i.e., 3' sequence needs to be reverse-complement
+## 0. Pre-process: long-read mapping and transcript identification/quantification
 
-### Command
+### 0.0 Consensus calling
+For RCA long-read data, consensus sequences need to be first called from RCA long reads using [TideHunter](https://github.com/yangao07/TideHunter)(≥1.5.4).
+
+The generated consensus sequences can then be mapped to reference genome as regular 1D long reads.
+
+* Input
+  * `rca_long_read.fq`: RCA long-read fasta/fastq file
+  * `five_prime.fa`, `three_prime.fa`: 5' and 3' sequence of RCA library. If a splint sequence was used, please split the splint sequence into two halves and use them as 5' and 3' sequences. Note that both 5' and 3' sequences need to have an orientation of 5'->3', i.e., 3' sequence needs to be reverse-complement
+
+* Command
 ```
 TideHunter rca_long_read.fq \
            -5 five_prime.fa \
@@ -117,9 +121,6 @@ TideHunter rca_long_read.fq \
            -o consensus.fa
 ```
 
-
-## 0. Pre-process: long-read mapping and transcript identification/quantification
-NanoHunter relies on the mapping and transcript identification/quantification result of long reads.
 ### 0.1 Mapping
 For mapping, we recommend using [minimap2](https://github.com/lh3/minimap2) in RNA splice mode.
 Any other long-read RNA-seq alignment tools can also be used here.
@@ -186,7 +187,6 @@ perl ESPRESSO_Q.pl -L esp_output_dir/for_esp_input.updated \
 ## 1. Barcode & UMI calling
 NanoHunter identifies barcode and UMI from sorted alignment BAM file of single-cell long reads ***without*** using reference barcode from short-read data. 
 
-For RCA long reads, before barcode/UMI calling, consensus sequences need to be generated (see [above](#optional-consensus-calling-for-rca-single-cell-long-read-data-with-tidehunter≥154)) and then mapped to reference genome.
 ### 1.1 Input 
 * Required:
   * `long_read.sorted.bam`: sorted long-read BAM (recommend using [minimap2](https://github.com/lh3/minimap2))
