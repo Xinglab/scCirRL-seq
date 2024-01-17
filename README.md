@@ -231,8 +231,23 @@ For example, for human peripheral blood mononuclear cells (PBMC), the clustering
 <!-- (https://github.com/Xinglab/NanoHunter/tree/main/scripts_for_paper#run_azimuth.R) -->
 We provide an example [R script](scripts_for_paper/README.md#run_azimuth_pbmcr) for human PBMC data. For data from other species/tissues, this needs to be done manually by users.
 
-**Note that not having cell clusters anntated with cell types does not affect the downstream splicing analysis of scRMATS-long.
-You can simply provide scRMATS-long with the cluster ID for each cell cluster.**
+**Note that not having cell clusters annotated with cell types does not affect the downstream splicing analyses by scRMATS-long.
+You can simply provide scRMATS-long with the cluster ID for each cell barocde.**
+
+Here is an example of output file of this step, `bc_to_cell_type.tsv`:
+
+|barcode| cell type|
+|-|-|
+| TACGCCGAGCAGGCCA | CD4 T|
+| ACGATCGAGGCATCAG | Mono |
+| ... | ...|
+
+Or, if no cell type annotation was available:
+|barcode| cluster ID|
+|-|-|
+| TACGCCGAGCAGGCCA | 1|
+| ACGATCGAGGCATCAG | 2|
+| ... | ...|
 
 
 ## 3. Cell type-specific splicing analysis
