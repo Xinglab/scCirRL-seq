@@ -17,7 +17,7 @@ It mainly consists of two parts:
 1. Barcode/UMI calling and gene/transcript quantification
 2. Cell type-specific & allele-specific splicing analysis
 
-<img src="figs/nanohunter-github-workflow.png" width="50%">
+<img src="figs/nanohunter-github-workflow.png" width="60%">
 
 NanoHunter is very fast, the barcode/UMI calling step usually takes ~1 hour for 10 million long reads.
 
@@ -383,6 +383,7 @@ gene_umap_plot(gene_mtx_dir = gene_mtx,
 ```
 # 2. UMAP plot of transcripts
 trans_umap_plot(gene_mtx_dir = gene_mtx,
+                # `trans_mtx_dir` needs to be only one folder or same size as `trans_list`
                 trans_mtx_dir = transcript_mtx,
                 trans_list = c("ENST00000433892", "ENST00000263398"))
 ```
