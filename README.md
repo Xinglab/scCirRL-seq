@@ -29,10 +29,10 @@ It mainly consists of two parts:
     - [Via conda (install locally for now)](#via-conda-install-locally-for-now)
     - [Via pip (not work yet)](#via-pip-not-work-yet)
     - [From source files](#from-source-files)
-  - [0. Pre-process: long-read mapping and transcript identification/quantification](#0-pre-process-long-read-mapping-and-transcript-identificationquantification)
+  - [0. Preprocessing](#0-preprocessing)
     - [0.0 Consensus calling](#00-consensus-calling)
     - [0.1 Mapping](#01-mapping)
-    - [0.2 Transcript identification and quantification](#02-transcript-identification-and-quantification)
+    - [0.2 Transcript identification](#02-transcript-identification)
   - [1. Barcode \& UMI calling](#1-barcode--umi-calling)
     - [1.1 Input](#11-input)
     - [1.2 Command](#12-command)
@@ -101,7 +101,7 @@ git clone git@github.com:Xinglab/scRMATS-long.git
 cd scRMATS-long && pip install .
 ```
 
-## 0. Pre-process: long-read mapping and transcript identification/quantification
+## 0. Preprocessing
 
 ### 0.0 Consensus calling
 For RCA long-read data, consensus sequences need to be first called from RCA long reads using [TideHunter](https://github.com/yangao07/TideHunter)(≥1.5.4).
@@ -148,8 +148,8 @@ minimap2 ref.fa long_read.fq/fa         \
 samtools view long_read.sam -b long_read.bam
 samtools sort long_read.bam -@ n_threads -o long_read.sorted.bam
 ```
-### 0.2 Transcript identification and quantification
-For transcript identification and quantification, we recommend using [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), other tools like [IsoQuant](https://github.com/ablab/IsoQuant) can also be used.
+### 0.2 Transcript identification
+For transcript identification, we recommend using [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), other tools like [IsoQuant](https://github.com/ablab/IsoQuant) can also be used.
 * Input
   * `long_read.sorted.bam`: sorted long-read alignment file in BAM format
   * `ref.fa`: reference genome file in FASTA format
