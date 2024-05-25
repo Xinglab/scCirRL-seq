@@ -107,11 +107,11 @@ cd scCirRL pip install .
 <!-- ### 0.0 Consensus calling
 For RCA long-read data, consensus sequences need to be first called from RCA long reads using [TideHunter](https://github.com/yangao07/TideHunter)(≥1.5.4).
 
-The generated consensus sequences can then be mapped to reference genome as regular 1D long reads.
+The generated consensus sequences can then be mapped to the reference genome as 1D long reads.
 
 * Input
   * `rca_long_read.fq`: RCA long-read fasta/fastq file
-  * `five_prime.fa`, `three_prime.fa`: 5' and 3' sequences of RCA library. If a splint sequence was used, please split the splint sequence into two halves and use them as 5' and 3' sequences. Note that both 5' and 3' sequences need to have an orientation of 5'->3', i.e., 3' sequence needs to be reverse-complement
+  * `five_prime.fa`, `three_prime.fa`: 5' and 3' sequences of RCA library. If a splint sequence was used, please split the splint sequence into two halves and use them as 5' and 3' sequences. Note that both 5' and 3' sequences need to have an orientation of 5'->3', i.e., the 3' sequence needs to be reverse-complement
 
 * Command
 ```
@@ -227,16 +227,16 @@ Example of `bc_umi.tsv`:
 ## 2. Cell clustering and annotation
 All the downstream single-cell long-read analyses rely on the cell type clustering result, which could be accomplished by running [Seurat](https://satijalab.org/seurat/) on the gene expression matrix.
 
-Annotating the cell clusters is the process of assign cell type to each cell cluster. This could be performed manually or based on known reference annotation like [Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
+Annotating the cell clusters is the process of assigning cell types to each cell cluster. This could be performed manually or based on known reference annotation like [Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
 
 For example, for human peripheral blood mononuclear cells (PBMC), the clustering and annotation result can be obtained by mapping to the Azimuth human PBMC reference dataset. 
 <!-- (https://github.com/Xinglab/scCirRL/tree/main/scripts_for_paper#run_azimuth.R) -->
 We provide an example [R script](scripts_for_paper/README.md#run_azimuth_pbmcr) for human PBMC data. For data from other species/tissues, this needs to be done manually by users.
 
 **Note that not having cell clusters annotated with cell types does not affect the downstream splicing analyses by scRMATS-long.
-You can simply provide scRMATS-long with the cluster ID for each cell barocde.**
+You can simply provide scRMATS-long with the cluster IDs for cell barcodes.**
 
-Here is an example of output file for this step, `bc_to_cell_type.tsv`:
+Here is an example of the output file for this step, `bc_to_cell_type.tsv`:
 
 |barcode| cell type|
 |-|-|
@@ -272,7 +272,7 @@ cell_type_specific_splicing expression_matrix/transcript \
 
 ### 3.3 Output
 * `*_cell_spliced_genes.tsv`: differentially spliced genes between 2 cell types. Gene FDR ≤0.05, max. delta ratio ≥0.05
-* `*_cell_spliced_transcripts.tsv`: differentially spliced transcripts between 2 cell types. Gene FDR ≤0.05, transcript p value ≤0.05, detal ratio ≥0.05
+* `*_cell_spliced_transcripts.tsv`: differentially spliced transcripts between 2 cell types. Gene FDR ≤0.05, transcript p value ≤0.05, delta ratio ≥0.05
 
 Example of `*_cell_spliced_genes.tsv`:
 
