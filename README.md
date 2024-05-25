@@ -18,7 +18,7 @@ It mainly consists of two parts:
 1. cell barcode/UMI calling: a standalone module for barcode/UMI calling and gene/transcript quantification
 2. alternative splicing analysis: modules for identification of cell type-specific and allele-specific splicing
 
-<img src="figs/scCirRL-github-workflow.png" width="70%">
+<img src="figs/github-workflow.png" width="70%">
 
 ## Table of Contents
 - [scCirRL: single-cell Characterization of isoform regulation using RNA-seq Long reads](#sccirrl-single-cell-characterization-of-isoform-regulation-using-rna-seq-long-reads)
