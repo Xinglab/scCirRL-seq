@@ -1,4 +1,4 @@
-# scCirRL: single-cell Characterization of isoform regulation using RNA-seq Long reads
+# scCirRL: <ins>s</ins>ingle-<ins>c</ins>ell <ins>C</ins>haracterization of <ins>i</ins>soform <ins>r</ins>egulation using <ins>R</ins>NA-seq <ins>L</ins>ong reads
 
 <!-- [![Latest Release](https://img.shields.io/github/release/xinglab/scCirRL.svg?label=Release)](https://github.com/xinglab/scCirRL/releases/latest) -->
 <!-- [![Github All Releases](https://img.shields.io/github/downloads/xinglab/scCirRL/total.svg?label=Download)](https://github.com/xinglab/scCirRL/releases) -->
@@ -16,7 +16,7 @@
 scCirRL is an analysis pipeline designed for single-cell RNA-seq long-read data.
 It mainly consists of two parts:
 1. cell barcode/UMI calling: a standalone module for barcode/UMI calling and gene/transcript quantification
-2. alternative splicing analysis: modules for identificaton of cell type-specific and allele-specific splicing
+2. alternative splicing analysis: modules for identification of cell type-specific and allele-specific splicing
 
 <!-- <img src="figs/scCirRL-github-workflow.png" width="70%"> -->
 
@@ -398,7 +398,7 @@ source("visualization.R)
 ### 5.1. UMAP plot of gene VIM and EPCAM
 ```
 scCirRL_umap_plot(gene_mtx_dir = gene_mtx,
-                  # `feature_mtx_dir` needs to be only one folder/object or same size as `feature_list`
+                  # `feature_mtx_dir` needs to be only one folder/object or the same size as `feature_list`
                   feature_mtx_dir = gene_mtx,
                   feature_list = c("VIM", "EPCAM"))
 ```
