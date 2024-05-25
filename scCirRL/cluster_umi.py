@@ -73,7 +73,7 @@ def search_for_umi_from_node(umi_graph_id_dict, node_id, umi_max_ed):
 def get_umi_trans(umi, umi_reads, all_read_to_trans):
     read_to_trans = dict()
     for read in umi_reads:
-        if not all_read_to_trans or read not in all_read_to_trans:
+        if not all_read_to_trans or read not in all_read_to_trans or len(all_read_to_trans[read]) == 0:
             read_to_trans[read] = ['NA']  # not listed in ESPRESSO, set trans as NA
         else:
             read_to_trans[read] = all_read_to_trans[read]
@@ -138,9 +138,55 @@ def get_cluster_reads(top_node, umi_network_graph):
             tot_read[read] = 1
     return list(tot_read.keys())
 
+def get_cmpt_genes(cmpt_trans, trans_to_gene_id_name):
+    if not cmpt_trans or not trans_to_gene_id_name: # no compatible transcript
+        return {'NA'}, {'NA'}
+    gene_ids, gene_names = set(), set()
+    for trans in cmpt_trans:
+        if trans not in trans_to_gene_id_name:
+            continue
+        gene_ids.add(trans_to_gene_id_name[trans]['id'])
+        gene_names.add(trans_to_gene_id_name[trans]['name'])
+    if gene_ids == set():
+        gene_ids = {'NA'}
+    if gene_names == set():
+        gene_names = {'NA'}
+    return gene_ids, gene_names
 
 # output NA for reads without compatible isoforms
-def umi_clustering(read_to_trans, bu_res, umi_max_ed):
+# res: {read_id: [bc, umi, cmpt_trans]}
+def umi_clustering(log_fn, read_to_trans, trans_to_gene_id_name, bu_res, umi_max_ed):
+    if len(bu_res) == 0:
+        return {}, {}
+    umi_clu_res_dict = dict()
+    umi_clu_res_list = []
+    bc_to_umi_reads = dd(lambda: dd(lambda: []))
+    perfect_bc_to_umi = dd(lambda: [])
+    # assume that any two reads with same BC & UMI always come from same transcript XXX
+    # ESPRESSO/ISOQUANT may assign them with different transcripts
+    for qname, bc, umi, is_perfect in bu_res:
+        bc_to_umi_reads[bc][umi].append(qname)
+        if is_perfect:
+            perfect_bc_to_umi[bc].append(umi)
+    for bc in bc_to_umi_reads:
+        # if bc == 'TTGTGGATCATTCACT':
+            # print('ok')
+        umi_network_graph = build_umi_network_graph(bc_to_umi_reads[bc], perfect_bc_to_umi[bc], read_to_trans, umi_max_ed)
+        for node_id, node in umi_network_graph.items():
+            if node.top_id == NULL_node_id:
+                ut.err_log_format_time(log_fn, 'ERROR', 'NULL top id: {}\n'.format(node.umi))
+            top_id = node.top_id
+            if top_id == node_id:  # only output top_id node
+                umi = umi_network_graph[top_id].umi
+                cmpt_trans = node.cmpt_trans
+                cmpt_gene_id, cmpt_gene_names = get_cmpt_genes(cmpt_trans, trans_to_gene_id_name)
+                reads = get_cluster_reads(umi_network_graph[top_id], umi_network_graph)
+                for r in reads:
+                    umi_clu_res_dict[r] =(bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names)
+                umi_clu_res_list.append((bc, umi, reads, cmpt_trans, cmpt_gene_id, cmpt_gene_names))
+    return umi_clu_res_dict, umi_clu_res_list
+
+def old_umi_clustering(log_fn, read_to_trans, bu_res, umi_max_ed):
     if len(bu_res) == 0:
         return []
     umi_cluster_res = []
@@ -158,7 +204,7 @@ def umi_clustering(read_to_trans, bu_res, umi_max_ed):
         umi_network_graph = build_umi_network_graph(bc_to_umi_reads[bc], perfect_bc_to_umi[bc], read_to_trans, umi_max_ed)
         for node_id, node in umi_network_graph.items():
             if node.top_id == NULL_node_id:
-                ut.err_fatal_format_time(__name__, 'NULL top id: {}\n'.format(node.umi))
+                ut.err_log_format_time(log_fn, 'ERROR', 'NULL top id: {}\n'.format(node.umi))
             top_id = node.top_id
             if top_id == node_id:  # only output top_id node
                 umi = umi_network_graph[top_id].umi

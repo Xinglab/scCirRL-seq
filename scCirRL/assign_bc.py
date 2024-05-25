@@ -6,7 +6,7 @@ from collections import defaultdict as dd
 from . import utils as ut
 from . import seq_utils as su
 from . import cluster_umi as cu
-from .parameter import nanohunter_para
+from .parameter import scrl_para_class
 from .__init__ import __version__
 from .__init__ import __program__
 from .__init__ import __cmd__
@@ -62,32 +62,27 @@ def get_cmpt_genes(cmpt_trans, trans_to_gene_id_name):
         gene_names = {'NA'}
     return gene_ids, gene_names
 
-def assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_to_trans, nh_para=nanohunter_para()): #, bc_len, bc_max_ed, umi_len, umi_max_ed):
+def assign_ref_bc1(mp_fetch_set1, in_bam, scrl_ref_bcs, scrl_cand_ref_bc_seq, read_to_trans, trans_to_gene_id_name, scrl_para=scrl_para_class()): #, bc_len, bc_max_ed, umi_len, umi_max_ed):
     bu_res = []
-    umi_cluster_res = []
     contig, start, end = mp_fetch_set1
     n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
     # with ps.AlignmentFile(in_sam_fn) as in_sam,  open('{}.txt'.format(mp.current_process().name), 'a') as err_fp:
-    bu_reads = set()
+    bu_reads = []
     bc_eds = dict()
     out_rs = {}
     n_processed_reads = 0
     for r in in_bam.fetch(contig, start, end):
-        if r.is_unmapped:
-            continue
-        if not nh_para.all_alignments:
-            if r.is_supplementary or r.is_secondary:
-                continue
-            if (r.cigar[0][0] == ps.CSOFT_CLIP and r.cigar[0][1]) > nh_para.max_clip_len or (r.cigar[-1][0] == ps.CSOFT_CLIP and r.cigar[-1][1] > nh_para.max_clip_len):
-                continue
         qname = r.query_name
+        skip, tag = su.check_for_skip(r, scrl_para)
+        if skip:
+            continue
         n_processed_reads += 1
         # if qname == debug_qname:
             # print('OK')
         # assign bc/umi for each read
-        ref_bc, umi, bc_ed, is_perfect, is_exact = search_for_matched_ref_bc(r, nh_ref_bcs, nh_cand_ref_bc_seq, 
-                                                                             nh_para.five_ada, nh_para.five_max_ed,
-                                                                             nh_para.bc_len, nh_para.bc_max_ed, nh_para.umi_len)
+        ref_bc, umi, bc_ed, is_perfect, is_exact = search_for_matched_ref_bc(r, scrl_ref_bcs, scrl_cand_ref_bc_seq, 
+                                                                             scrl_para.five_ada, scrl_para.five_max_ed,
+                                                                             scrl_para.bc_len, scrl_para.bc_max_ed, scrl_para.umi_len)
         if ref_bc and umi:
             if is_perfect:
                 if is_exact: n_perfect_in_ref_reads += 1
@@ -96,80 +91,83 @@ def assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_t
                 if is_exact: n_imperfect_in_ref_reads += 1
                 else: n_imperfect_uniq_to_ref_reads += 1
             bu_res.append([qname, ref_bc, umi, is_perfect])
-            bu_reads.add(qname)
+            bu_reads.append(qname)
             bc_eds[qname] = bc_ed
             out_rs[qname] = r
     # UMI clustering within each bc
     # return:
     # (bc, umi, reads, cmpt_trans)
-    umi_cluster_res = cu.umi_clustering(read_to_trans, bu_res, nh_para.umi_max_ed)
-    # mp_q_res.put([bu_res, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads])
-    res = [bu_reads, bc_eds, out_rs, umi_cluster_res, n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads]
+    umi_clu_res_dict, umi_clu_res_list = cu.umi_clustering(scrl_para.log_fn, read_to_trans, trans_to_gene_id_name, bu_res, scrl_para.umi_max_ed)
+    res = [bu_reads, bc_eds, out_rs, umi_clu_res_dict, umi_clu_res_list, n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads]
     return res, n_processed_reads
 
 
-# def sp_assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam):
-def sp_assign_ref_bc(mp_fetch_set, n_total_reads, nh_ref_bcs, nh_cand_ref_bc_seq, trans_to_gene_id_name, read_to_trans, nh_para=nanohunter_para()):
-    ut.err_log_format_time(nh_para.log_fn, __name__, "Assigning barcode & UMI ...")
+# def sp_assign_ref_bc(mp_fetch_set, scrl_ref_bcs, scrl_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam):
+def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_seq, 
+                     trans_to_gene_id_name, read_to_trans, read_to_cate, scrl_para=scrl_para_class()):
+    ut.err_log_format_time(scrl_para.log_fn, str="Assigning barcode & UMI ...")
+    ut.err_log_progress_bar(scrl_para.log_fn)
     n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
     bc_ed_count_dict = dd(lambda: 0) # {bc_ed: count}
     n_processed_reads = 0
-    percentage_processed_reads = 10 # start from 5%
-    with open(nh_para.out_bu_fn, 'w') as out_fp, ps.AlignmentFile(nh_para.long_bam) as in_bam:
-        out_fp.write('#BC\tUMI\tReadCount\tTranscript\tGeneID\tGeneName\tReadNames\n')
+    n_existing_stars = 0
+    # percentage_processed_reads = 10 # start from 5%
+    with open(scrl_para.out_bu_fn, 'w') as out_fp, ps.AlignmentFile(scrl_para.long_bam) as in_bam:
+        out_fp.write('#CellBarcode\tUMI\tReadCount\tTranscriptID\tGeneID\tGeneName\tReadNames\n')
         bam_header_dict = in_bam.header.to_dict()
-        nhs_append_pg_dict = {'ID': __program__, 'PN': __program__, 'VN': __version__, 'CL': __cmd__}
+        scrl_append_pg_dict = {'ID': __program__, 'PN': __program__, 'VN': __version__, 'CL': __cmd__}
         if 'PG' in bam_header_dict:
-            bam_header_dict['PG'].append(nhs_append_pg_dict)
+            pg_PNs = [pg['PN'] for pg in bam_header_dict['PG']]
+            if pg_PNs.count(__program__) > 0:
+                scrl_append_pg_dict['ID'] = '{}.{}'.format(__program__, pg_PNs.count(__program__) + 1)
+            bam_header_dict['PG'].append(scrl_append_pg_dict)
         else:
-            bam_header_dict['PG'] = [nhs_append_pg_dict]
-        with ps.AlignmentFile(nh_para.out_bu_bam, 'wb', header=bam_header_dict) as out_bam:
+            bam_header_dict['PG'] = [scrl_append_pg_dict]
+        with ps.AlignmentFile(scrl_para.out_bu_bam, 'wb', header=bam_header_dict) as out_bam:
             for mp_fetch_set1 in mp_fetch_set:
-                out_res, _n_processed_reads = assign_ref_bc1(mp_fetch_set1, in_bam, nh_ref_bcs, nh_cand_ref_bc_seq, read_to_trans, nh_para)
+                out_res, _n_processed_reads = assign_ref_bc1(mp_fetch_set1, in_bam, 
+                                                             scrl_ref_bcs, scrl_cand_ref_bc_seq, 
+                                                             read_to_trans, trans_to_gene_id_name,
+                                                             scrl_para)
                 n_processed_reads += _n_processed_reads
-                if n_processed_reads / n_total_reads >= percentage_processed_reads / 100:
-                    ut.err_log_format_time(nh_para.log_fn, __name__, '%d reads processed (%.1f%%)' % (n_processed_reads, n_processed_reads / n_total_reads * 100))
-                    percentage_processed_reads = int(n_processed_reads / n_total_reads * 100) + 10
-                bu_reads, bc_eds, out_rs, umi_cluster_res, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = out_res
-                out_reads = []
-                for bc, umi, reads, cmpt_trans in umi_cluster_res:
-                    # write BC/UMI bu
-                    cmpt_gene_id, cmpt_gene_names = get_cmpt_genes(cmpt_trans, trans_to_gene_id_name)
+                n_existing_stars = ut.err_log_progress_star(scrl_para.log_fn, n_total_reads, n_processed_reads, n_existing_stars)
+                bu_reads, bc_eds, out_rs, umi_clu_res_dict, umi_clu_res_list, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = out_res
+                
+                for bc, umi, reads, cmpt_trans, cmpt_gene_id, cmpt_gene_names in umi_clu_res_list:
                     out_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(bc, umi, len(reads), ','.join(cmpt_trans), ','.join(cmpt_gene_id), ','.join(cmpt_gene_names), ','.join(reads)))
-                    out_reads.extend(reads)
 
-                    # write BAM with BC/UMI tag
-                    for read in reads:
+                for read in bu_reads:
+                    if read in umi_clu_res_dict:
+                        bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names = umi_clu_res_dict[read]
+                        cate = read_to_cate[read]
                         r = out_rs[read]
                         bc_ed = bc_eds[read]
                         bc_ed_count_dict[bc_ed] += 1
                         r.set_tag('CB', bc, 'Z')
                         r.set_tag('UB', umi, 'Z')
                         r.set_tag('BE', bc_ed, 'i')
+                        r.set_tag('TC', cate, 'Z')
                         r.set_tag('TI', ','.join(cmpt_trans), 'Z')
                         r.set_tag('GI', ','.join(cmpt_gene_id), 'Z')
                         r.set_tag('GN', ','.join(cmpt_gene_names), 'Z')
                         out_bam.write(r)
 
-                c_not_o = bu_reads - set(out_reads)
-                o_not_c = set(out_reads) - bu_reads
-                if c_not_o:
-                    sys.stderr.write('Count but Not output:\t{}\n'.format(','.join(c_not_o)))
-                if o_not_c:
-                    sys.stderr.write('Ooutput but Not count:\t{}\n'.format(','.join(o_not_c)))
-                # write BAM records with BC/UMI tags
                 n_perfect_in_ref_reads += sub_n_perfect_in_ref_reads
                 n_perfect_uniq_to_ref_reads += sub_n_perfect_uniq_to_ref_reads
                 n_imperfect_in_ref_reads += sub_n_imperfect_in_ref_reads
                 n_imperfect_uniq_to_ref_reads += sub_n_imperfect_uniq_to_ref_reads
+    # build index for output bam
+    ut.err_log_format_time(scrl_para.log_fn, str="Building index for {} ...".format(scrl_para.out_bu_bam))
+    ps.index(scrl_para.out_bu_bam)
+    ut.err_log_format_time(scrl_para.log_fn, str="Building index done!")
     n_total_assigned_reads = n_perfect_in_ref_reads + n_perfect_uniq_to_ref_reads + n_imperfect_in_ref_reads + n_imperfect_uniq_to_ref_reads
     assign_ratio = '(%.1f%%)' % (n_total_assigned_reads / n_total_reads * 100)
     bc_ed_count_str = '\n'.join(['%21d : %d (%.1f%%)' % (k, v, v/n_total_reads*100) for k, v in sorted(bc_ed_count_dict.items())])
     
-    ut.err_log_format_time(nh_para.log_fn, __name__, "Assigning barcode & UMI done!")
-    ut.err_log_format_time(nh_para.log_fn, __name__, "Barcode calling summary:\n" +
+    ut.err_log_format_time(scrl_para.log_fn, str="Assigning barcode & UMI done!")
+    ut.err_log_format_time(scrl_para.log_fn, str="Barcode calling summary:\n" +
 f'''Total mapped reads    : {n_total_reads}
-Total cell barcodes   : {len(nh_ref_bcs)}
+Total cell barcodes   : {len(scrl_ref_bcs)}
 Barcode-called reads  : {n_total_assigned_reads} {assign_ratio}
 Barcode edit distance : read count\n{bc_ed_count_str}
 ''')
@@ -179,9 +177,3 @@ Barcode edit distance : read count\n{bc_ed_count_str}
 # Imperfect Unique to Reference:\t\t{n_imperfect_uniq_to_ref_reads}\n
 # ''')
     return
-
-
-# 2nd round: assign bc and UMI clustering within each bc
-# def assign_ref_bc(mp_fetch_set, nh_ref_bcs, nh_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam):
-def assign_ref_bc(mp_fetch_set, n_total_reads, nh_ref_bcs, nh_cand_ref_bc_seq, trans_to_gene_id_name, read_to_trans, nh_para):
-    sp_assign_ref_bc(mp_fetch_set, n_total_reads, nh_ref_bcs, nh_cand_ref_bc_seq, trans_to_gene_id_name, read_to_trans, nh_para)

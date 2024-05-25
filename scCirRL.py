@@ -1,4 +1,4 @@
-from nanohunter import main
+from scCirRL import main
 
 ### python version >= 3.8
 main.main()

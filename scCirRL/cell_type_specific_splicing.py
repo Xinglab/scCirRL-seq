@@ -372,7 +372,7 @@ def parser_argv():
 
 def main():
     # input: 
-    #   nanohunter transcript matrix directory, barcode to cluster tsv, output prefix
+    #   scCirRL transcript matrix directory, barcode to cluster tsv, output prefix
     # output:
     #   cell type specific spliced gene tsv
     #   gene_details.out:  gene/gene-FDR/transcript isoforms/cell type1/cell type2/trans count1/trans count2/ratio1/ratio2

@@ -5,6 +5,8 @@ import gzip
 from scipy.sparse import csr_matrix  # for sparse matrix
 from collections import defaultdict as dd
 from .allele_specific_splicing import get_reads_to_hap
+from .parameter import scrl_para_class
+from .utils import err_log_format_time
 
 from .__init__ import __version__
 from .__init__ import __program__
@@ -16,7 +18,7 @@ max_iter = 10000
 
 default_cluster = 'cluster_0'
 
-class nh_matrix_data:
+class scrl_matrix_data:
     def __init__(self, row, col, data, bc, names):
         self.row = row
         self.col = col
@@ -441,8 +443,8 @@ def write_10X_sparse_matrix(matrix_row, matrix_col, matrix_data, names, all_bc, 
 
 def make_matrix_data_with_hap_em(all_bc, bc_to_cluster, bu_to_hap_trans, gene_to_trans):
     all_clusters = list(set(bc_to_cluster.values()))
-    hap_to_gene_mtx_data = dd(lambda: dd(lambda: nh_matrix_data)) # {hap: {gene: mxt_data}}
-    hap_to_trans_mtx_data = dd(lambda: dd(lambda: nh_matrix_data)) # {hap: {gene: mxt_data}}
+    hap_to_gene_mtx_data = dd(lambda: dd(lambda: scrl_matrix_data)) # {hap: {gene: mxt_data}}
+    hap_to_trans_mtx_data = dd(lambda: dd(lambda: scrl_matrix_data)) # {hap: {gene: mxt_data}}
     if all_clusters == []:
         all_clusters = [default_cluster]
     
@@ -491,8 +493,8 @@ def make_matrix_data_with_hap_em(all_bc, bc_to_cluster, bu_to_hap_trans, gene_to
             iso_names.append(trans + '\t' + trans)
         trans_i += len(all_trans)
     for hap in ['H1', 'H2', 'none']:
-        hap_to_gene_mtx_data[hap] = nh_matrix_data(hap_gene_matrix_row[hap], hap_gene_matrix_col[hap], hap_gene_matrix_data[hap], all_bc, gene_names)
-        hap_to_trans_mtx_data[hap] = nh_matrix_data(hap_iso_matrix_row[hap], hap_iso_matrix_col[hap], hap_iso_matrix_data[hap], all_bc, iso_names)
+        hap_to_gene_mtx_data[hap] = scrl_matrix_data(hap_gene_matrix_row[hap], hap_gene_matrix_col[hap], hap_gene_matrix_data[hap], all_bc, gene_names)
+        hap_to_trans_mtx_data[hap] = scrl_matrix_data(hap_iso_matrix_row[hap], hap_iso_matrix_col[hap], hap_iso_matrix_data[hap], all_bc, iso_names)
     return hap_to_gene_mtx_data, hap_to_trans_mtx_data
 
 def make_matrix_data_with_em(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans):
@@ -540,8 +542,8 @@ def make_matrix_data_with_em(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans):
         for trans in all_trans:
             iso_names.append(trans + '\t' + trans)
         trans_i += len(all_trans)
-    gene_mtx_data = nh_matrix_data(gene_matrix_row, gene_matrix_col, gene_matrix_data, all_bc, gene_names)
-    trans_mtx_data = nh_matrix_data(iso_matrix_row, iso_matrix_col, iso_matrix_data, all_bc, iso_names)
+    gene_mtx_data = scrl_matrix_data(gene_matrix_row, gene_matrix_col, gene_matrix_data, all_bc, gene_names)
+    trans_mtx_data = scrl_matrix_data(iso_matrix_row, iso_matrix_col, iso_matrix_data, all_bc, iso_names)
     return gene_mtx_data, trans_mtx_data
     # write_10X_sparse_matrix(gene_matrix_row, gene_matrix_col, gene_matrix_data, gene_names, all_bc, out_dir+'/gene')
     # write_10X_sparse_matrix(iso_matrix_row, iso_matrix_col, iso_matrix_data, iso_names, all_bc, out_dir+'/transcript')
@@ -559,7 +561,10 @@ def parser_argv():
     return parser.parse_args()
 
 
-def make_10X_matrix(cell_to_cluster_tsv, hap_list_tsv, bu_fn, out_mtx_dir):
+def make_10X_matrix(cell_to_cluster_tsv, hap_list_tsv, scrl_para):
+    err_log_format_time(scrl_para.log_fn, str='Writing cell-gene/transcript expression matrix ... ')
+    bu_fn, out_mtx_dir = scrl_para.bu_tsv, scrl_para.out_mtx_dir
+    # add log info printout
     bc_to_cluster = parse_cell_cluster(cell_to_cluster_tsv)
     if not os.path.exists(out_mtx_dir):
         os.mkdir(out_mtx_dir)
@@ -581,6 +586,7 @@ def make_10X_matrix(cell_to_cluster_tsv, hap_list_tsv, bu_fn, out_mtx_dir):
         gene_mtx_data.write_matrix_data(out_mtx_dir+'/gene')
         trans_mtx_data.write_matrix_data(out_mtx_dir+'/transcript')
         write_gene_to_trans_tsv(gene_to_trans, out_mtx_dir+'/transcript')
+    err_log_format_time(scrl_para.log_fn, str='Writing cell-gene/transcript expression matrix done!')
 
 
 

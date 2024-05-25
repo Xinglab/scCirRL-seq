@@ -4,10 +4,9 @@ _bc_len = 16
 _bc_max_ed = 2
 _umi_len = 12
 _umi_max_ed = 1
-_max_clip_len = 200
 _five_ada = 'CTACACGACGCTCTTCCGATCT'
 
-class nanohunter_para:
+class scrl_para_class:
     def __init__(self):
         # input
         self.bc_len = 16
@@ -16,13 +15,15 @@ class nanohunter_para:
         self.umi_max_ed = 1
         self.five_ada = 'CTACACGACGCTCTTCCGATCT'
         self.five_max_ed = int(len(self.five_ada) * 0.3)
-        self.max_clip_len = 200
-        self.all_alignments = False
+        self.cell_count = -1
+        self.skip_chimeric = False
+        self.only_primary = False
         self.long_bam = ""
         self.updated_gtf = ""
         self.anno_gtf = ""
         self.cmpt_tsv = ""
-        self.isoquant = False
+        # self.cate = ['FSM', 'NIC', 'NNC', 'ISM', 'NCD', 'SINGLE-EXON']
+        # self.isoquant = False
         self.bc_list = ""
 
         # output

@@ -19,14 +19,18 @@ append_list <- function(x, y) {
     return(x)
 }
 
-make_seurat_obj <- function(in_mtx_dir) {
+make_seurat_obj <- function(in_mtx_dir, name="") {
     if (is.object(in_mtx_dir)) {
         return(in_mtx_dir)
     }
     if (!is.character(in_mtx_dir) || !dir.exists(in_mtx_dir)) {
         stop("gene_mtx_dir must be a Seurat object or a folder.")
     }
+    if (name == "") {
+        name <- "seurat_obj"
+    }
     rdata = paste(in_mtx_dir, "/seurat.RData", sep="")
+    # rdata = paste(in_mtx_dir, "/PGmix_Gene.RData", sep="")
     if (file.exists(rdata)) {
         load(rdata)
         print(paste(rdata, "loaded.", sep = " "))
@@ -36,21 +40,21 @@ make_seurat_obj <- function(in_mtx_dir) {
         dt <- Read10X(in_mtx_dir)
         # create seurat object
         set.seed(123)
-        gene_obj <- CreateSeuratObject(counts = dt, project = name, min.cells = 3, min.features = 200)
-        gene_obj[["percent.mt"]] <- PercentageFeatureSet(gene_obj, pattern = "^MT-")
-        gene_obj <- subset(gene_obj, subset = percent.mt < 25)
+        seurat_obj <- CreateSeuratObject(counts = dt, project = name, min.cells = 3, min.features = 200)
+        seurat_obj[["percent.mt"]] <- PercentageFeatureSet(seurat_obj, pattern = "^MT-")
+        seurat_obj <- subset(seurat_obj, subset = percent.mt < 25)
 
-        gene_obj <- NormalizeData(gene_obj)
-        gene_obj <- FindVariableFeatures(gene_obj, selection.method = "vst", nfeatures = 2000)
-        gene_obj <- ScaleData(gene_obj)
-        gene_obj <- RunPCA(gene_obj)
-        gene_obj <- FindNeighbors(gene_obj, dims = 1:10)
-        gene_obj <- FindClusters(gene_obj, resolution = 0.03, graph.name = "RNA_snn")  # change resolution for different data
-        gene_obj <- RunUMAP(gene_obj, dims = 1:10, graph.name = "RNA_snn")
+        seurat_obj <- NormalizeData(seurat_obj)
+        seurat_obj <- FindVariableFeatures(seurat_obj, selection.method = "vst", nfeatures = 2000)
+        seurat_obj <- ScaleData(seurat_obj)
+        seurat_obj <- RunPCA(seurat_obj)
+        seurat_obj <- FindNeighbors(seurat_obj, dims = 1:10)
+        seurat_obj <- FindClusters(seurat_obj, resolution = 0.03, graph.name = "RNA_snn")  # change resolution for different data
+        seurat_obj <- RunUMAP(seurat_obj, dims = 1:10, graph.name = "RNA_snn")
 
-        save(gene_obj, file = rdata)
+        save(seurat_obj, file = rdata)
     }
-    return(gene_obj)
+    return (seurat_obj)
 }
 
 feature_plot <- function(seurat_vec,
@@ -140,14 +144,14 @@ feature_plot <- function(seurat_vec,
 # feature_label_list: list of gene/transcript label, e.g. c("Gene", "Trans1", "Trans2")
 # nrow: number of rows in the combined UMAP plot (default: 1)
 
-nanohunter_umap_plot <- function(gene_mtx_dir, 
-                                 feature_mtx_dir, 
-                                 feature_list, 
-                                 feature_label_list=list(), 
-                                 umap_col=umap_dot_red_cols, 
-                                 text_pos="left", 
-                                 text_rot=0, 
-                                 nrow=1) {
+scCirRL_umap_plot <- function(gene_mtx_dir, 
+                              feature_mtx_dir, 
+                              feature_list, 
+                              feature_label_list=list(), 
+                              umap_col=umap_dot_red_cols, 
+                              text_pos="left", 
+                              text_rot=0, 
+                              nrow=1) {
     if (length(feature_label_list) == 0) {
         feature_label_list = feature_list
     } else if (length(feature_list) != length(feature_label_list)) {

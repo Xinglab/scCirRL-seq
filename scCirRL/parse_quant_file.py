@@ -1,7 +1,7 @@
 import sys
 import os
 from collections import defaultdict as dd
-from .parameter import nanohunter_para
+from .parameter import scrl_para_class
 from .utils import err_log_format_time
 
 filtered_cates = []  # single-exon/NCD/NIC/NNC/ISM/FSM
@@ -58,21 +58,21 @@ def get_gene_name(in_gtf):
     return anno_gene_id_to_name
 
 
-def collect_trans_to_gene(nh_para=nanohunter_para()):
-    anno_gtf = nh_para.anno_gtf
-    updated_gtf = nh_para.updated_gtf
+def collect_trans_to_gene(scrl_para=scrl_para_class()):
+    anno_gtf = scrl_para.anno_gtf
+    updated_gtf = scrl_para.updated_gtf
 
     
     anno_gene_id_to_name = dict()
     trans_to_gene_id_name = dict()
     
     if os.path.exists(anno_gtf):
-        err_log_format_time(nh_para.log_fn, __name__, 'Collecting gene information from {}'.format(anno_gtf))
+        err_log_format_time(scrl_para.log_fn, str='Collecting gene information from {}'.format(anno_gtf))
         anno_gene_id_to_name = get_gene_name(anno_gtf)
     else:
-        err_log_format_time(nh_para.log_fn, 'Warning', 'No annotation GTF file found.')
+        err_log_format_time(scrl_para.log_fn, 'Warning', 'No annotation GTF file found.')
     if os.path.exists(updated_gtf):
-        err_log_format_time(nh_para.log_fn, __name__, 'Collecting transcript information from {}'.format(updated_gtf))
+        err_log_format_time(scrl_para.log_fn, str='Collecting transcript information from {}'.format(updated_gtf))
         with open(updated_gtf) as fp:
             for line in fp:
                 if line.startswith('#'):
@@ -101,53 +101,63 @@ def collect_trans_to_gene(nh_para=nanohunter_para()):
                 if trans_id and gene_id and gene_name:
                     trans_to_gene_id_name[trans_id] = {'id': gene_id, 'name': gene_name}
     else:
-        err_log_format_time(nh_para.log_fn, 'Warning', 'No updated GTF file found, no gene/transcript information will be output.')
+        err_log_format_time(scrl_para.log_fn, 'Warning', 'No updated GTF file found, no gene/transcript information will be output.')
     return trans_to_gene_id_name
 
 
-# for ISOQUANT, read may show up in multiple lines with different isoforms
-# for ESPRESSO, read only show up in one line, may follow by multiple isoforms
-def collect_read_to_trans(trans_to_gene_id_name, nh_para=nanohunter_para()):
-    cmpt_iso_fn = nh_para.cmpt_tsv
-    is_isoquant = nh_para.isoquant
+# for Bambu or ESPRESSO, read only show up in one line, may follow by multiple isoforms
+def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class()):
+    cmpt_iso_fn = scrl_para.cmpt_tsv
+    # cates = scrl_para.cate
     # NA_idx = 0
     if not os.path.exists(cmpt_iso_fn):
-        err_log_format_time(nh_para.log_fn, 'Warning', 'No read-isoform compatible file found, no gene/transcript quantification will be output.')
+        err_log_format_time(scrl_para.log_fn, 'Warning', 'No read-isoform compatible file found, no gene/transcript quantification will be output.')
         return None
     read_to_trans = dd(lambda: [])
-    err_log_format_time(nh_para.log_fn, __name__, 'Collecting compatible transcripts from {}'.format(cmpt_iso_fn))
+    read_to_cate = dd(lambda: 'NA')
+    err_log_format_time(scrl_para.log_fn, str='Collecting compatible transcripts from {}'.format(cmpt_iso_fn))
     with open(cmpt_iso_fn) as fp:
         for line in fp:
             if line.startswith('#'):
                 continue
-            ele = line.rsplit()
-            if len(ele) < 2:
-                continue
-            if not is_isoquant:  # ESPRESSO file
-                if len(ele) != 4:
+            ele = line.rstrip('\n').rsplit('\t')
+            cmpt_trans_set = []
+            cate = 'NA'
+            # ESPRESSO: 4: readID, sample/bam, category, transcriptID(s)
+            # Bambu: 3: readID, equalMatchesTrans, compatibleMatchesTrans
+            if len(ele) == 3: # Bambu
+                qname, equal_trans, cmpt_trans = ele[0], ele[1], ele[2]
+                if qname == 'readId' or equal_trans == 'equalMatches' or cmpt_trans == 'compatibleMatches':
                     continue
+                if equal_trans != 'NA':
+                    cate = 'FullLen'
+                    cmpt_trans_set.extend(equal_trans.rsplit(','))
+                if cmpt_trans != 'NA':
+                    if cate == 'NA':
+                        cate = 'Partial'
+                    cmpt_trans_set.extend(equal_trans.rsplit(','))
+                if cate == 'NA':
+                    continue
+                read_to_trans[qname] = cmpt_trans_set
+                read_to_cate[qname] = cate
+            elif len(ele) == 4: # ESPRESSO
                 qname, cate, cmpt_trans = ele[0], ele[2], ele[3]
-                if cate in filtered_cates:
-                    continue
                 if cmpt_trans == 'NA':
                     continue
-                    # cmpt_trans += str(NA_idx)
-                    # NA_idx += 1
+                # cmpt_trans += str(NA_idx)
+                # NA_idx += 1
                 cmpt_trans = cmpt_trans.rsplit(',')
                 if '' in cmpt_trans:
                     cmpt_trans.remove('')
                 # remove trans not in trans_to_gene_id_name
-                cmpt_trans_set = []
                 for trans in cmpt_trans:
                     if trans in trans_to_gene_id_name:
                         cmpt_trans_set.append(trans)
                 if cmpt_trans_set:
                     read_to_trans[qname] = cmpt_trans_set
-            else:  # ISOQUANT
-                if len(ele) != 2:
-                    continue
-                qname, trans = ele[0], ele[1]
-                if trans == '*' or trans not in trans_to_gene_id_name: # remove trans not in trans_to_gene_id_name
-                    continue
-                read_to_trans[qname].append(trans)
-    return read_to_trans
+                read_to_cate[qname] = cate
+            else:
+                err_log_format_time(scrl_para.log_fn, 'Warning', 'Unrecognized read-isoform compatible file format, no gene/transcript quantification will be output.')
+                break
+                # continue
+    return read_to_trans, read_to_cate

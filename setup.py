@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
-from nanohunter.__init__ import __program__, __module__, __version__, __author__, __email__, __description__, __url__
-from nanohunter.__init__ import __scripts__
+from scCirRL.__init__ import __program__, __module__, __version__, __author__, __email__, __description__, __url__
+from scCirRL.__init__ import __scripts__
 
 
 def read(path):

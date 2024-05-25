@@ -1,28 +1,30 @@
-# scRMATS-long: single-cell long-read RNA-seq analysis package
+# scCirRL: single-cell Characterization of isoform regulation using RNA-seq Long reads
 
-<!-- [![Latest Release](https://img.shields.io/github/release/xinglab/NanoHunter.svg?label=Release)](https://github.com/xinglab/NanoHunter/releases/latest) -->
-<!-- [![Github All Releases](https://img.shields.io/github/downloads/xinglab/NanoHunter/total.svg?label=Download)](https://github.com/xinglab/NanoHunter/releases) -->
-<!-- [![BioConda Install](https://img.shields.io/conda/dn/bioconda/nanohunter.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/nanohunter) -->
-<!-- [![PyPI](https://img.shields.io/pypi/dm/nanohunter.svg?label=pip%20install)](https://pypi.python.org/pypi/nanohunter) -->
+<!-- [![Latest Release](https://img.shields.io/github/release/xinglab/scCirRL.svg?label=Release)](https://github.com/xinglab/scCirRL/releases/latest) -->
+<!-- [![Github All Releases](https://img.shields.io/github/downloads/xinglab/scCirRL/total.svg?label=Download)](https://github.com/xinglab/scCirRL/releases) -->
+<!-- [![BioConda Install](https://img.shields.io/conda/dn/bioconda/scCirRL.svg?style=flag&label=BioConda%20install)](https://anaconda.org/bioconda/scCirRL) -->
+<!-- [![PyPI](https://img.shields.io/pypi/dm/scCirRL.svg?label=pip%20install)](https://pypi.python.org/pypi/scCirRL) -->
 <!-- [![Published in Bioinformatics](https://img.shields.io/badge/Published%20in-Bioinformatics-blue.svg)](https://dx.doi.org/10.1093/bioinformatics/btaa963) -->
-<!-- [![GitHub Issues](https://img.shields.io/github/issues/xinglab/NanoHunter.svg?label=Issues)](https://github.com/xinglab/NanoHunter/issues) -->
-<!-- [![License](https://img.shields.io/badge/License-MIT-black.svg)](https://github.com/xinglab/NanoHunter/blob/main/LICENSE) -->
-## Updates (v1.0.0)
+<!-- [![GitHub Issues](https://img.shields.io/github/issues/xinglab/scCirRL.svg?label=Issues)](https://github.com/xinglab/scCirRL/issues) -->
+<!-- [![License](https://img.shields.io/badge/License-MIT-black.svg)](https://github.com/xinglab/scCirRL/blob/main/LICENSE) -->
+## TODO: add one-line command to run, 1) barcode calling, 2) cell-type splicing, 3) allele-specific splicing
+## Updates (v0.0.1)
 
 - First version
 
-## What is scRMATS-long
-scRMATS-long is an analysis pipeline designed for long-read single-cell RNA-seq data.
+## What is scCirRL
+scCirRL is an analysis pipeline designed for single-cell RNA-seq long-read data.
 It mainly consists of two parts:
-1. NanoHunter: a standalone module for barcode/UMI calling and gene/transcript quantification
-2. scRMATS-long: analysis modules for identificaton of cell type-specific and allele-specific splicing
+1. cell barcode/UMI calling: a standalone module for barcode/UMI calling and gene/transcript quantification
+2. alternative splicing analysis: modules for identificaton of cell type-specific and allele-specific splicing
 
-<img src="figs/nanohunter-github-workflow.png" width="70%">
+<!-- <img src="figs/scCirRL-github-workflow.png" width="70%"> -->
 
 ## Table of Contents
-- [scRMATS-long: single-cell long-read RNA-seq analysis package](#scrmats-long-single-cell-long-read-rna-seq-analysis-package)
-  - [Updates (v1.0.0)](#updates-v100)
-  - [What is scRMATS-long](#what-is-scrmats-long)
+- [scCirRL: single-cell Characterization of isoform regulation using RNA-seq Long reads](#sccirrl-single-cell-characterization-of-isoform-regulation-using-rna-seq-long-reads)
+  - [TODO: add one-line command to run, 1) barcode calling, 2) cell-type splicing, 3) allele-specific splicing](#todo-add-one-line-command-to-run-1-barcode-calling-2-cell-type-splicing-3-allele-specific-splicing)
+  - [Updates (v0.0.1)](#updates-v001)
+  - [What is scCirRL](#what-is-sccirrl)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
     - [Operating system and python version](#operating-system-and-python-version)
@@ -30,7 +32,6 @@ It mainly consists of two parts:
     - [Via pip (not work yet)](#via-pip-not-work-yet)
     - [From source files](#from-source-files)
   - [0. Preprocessing](#0-preprocessing)
-    - [0.0 Consensus calling](#00-consensus-calling)
     - [0.1 Mapping](#01-mapping)
     - [0.2 Transcript identification](#02-transcript-identification)
   - [1. Barcode \& UMI calling](#1-barcode--umi-calling)
@@ -53,7 +54,7 @@ It mainly consists of two parts:
 
 ## Installation
 ### Operating system and python version
-scRMATS-long was written in python3 and tested on Linux/Unix systems, so it may not work well with python2 and/or other systems(Windows/Mac).
+scCirRL was written in python3 and tested on Linux/Unix systems, so it may not work well with python2 and/or other systems(Windows/Mac).
 
 <!-- 
 ### <a name="dep"></a>~~Dependencies~~ installed via conda
@@ -77,8 +78,8 @@ scRMATS-long was written in python3 and tested on Linux/Unix systems, so it may 
 
 ### Via conda (install locally for now)
 ```
-git clone git@github.com:Xinglab/scRMATS-long.git
-cd scRMATS-long
+git clone git@github.com:Xinglab/scCirRL.git
+cd scCirRL
 conda create --prefix ./conda_env
 conda activate ./conda_env
 conda install -c conda-forge -c bioconda python=3.8 --file conda_requirements.txt
@@ -86,24 +87,24 @@ python setup.py install
 ```
 
 <!-- ```
-conda create -n scRMATS-long python=3.8 scRMATS-long
-conda activate scRMATS-long
+conda create -n scCirRL-env python=3.8 scCirRL
+conda activate scCirRL
 ``` -->
 
 ### Via pip (not work yet)
 ```
-pip install scrmats-long
+pip install scCirRL
 ```
 
 ### From source files
 ```
-git clone git@github.com:Xinglab/scRMATS-long.git
-cd scRMATS-long && pip install .
+git clone git@github.com:Xinglab/scCirRL.git
+cd scCirRL pip install .
 ```
 
 ## 0. Preprocessing
 
-### 0.0 Consensus calling
+<!-- ### 0.0 Consensus calling
 For RCA long-read data, consensus sequences need to be first called from RCA long reads using [TideHunter](https://github.com/yangao07/TideHunter)(≥1.5.4).
 
 The generated consensus sequences can then be mapped to reference genome as regular 1D long reads.
@@ -119,7 +120,7 @@ TideHunter rca_long_read.fq \
            -3 three_prime.fa \
            -lF -t 16 \
            -o consensus.fa
-```
+``` -->
 
 ### 0.1 Mapping
 For mapping, we recommend using [minimap2](https://github.com/lh3/minimap2) in RNA splice mode.
@@ -149,7 +150,7 @@ samtools view long_read.sam -b long_read.bam
 samtools sort long_read.bam -@ n_threads -o long_read.sorted.bam
 ```
 ### 0.2 Transcript identification
-For transcript identification, we recommend using [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), other tools like [IsoQuant](https://github.com/ablab/IsoQuant) can also be used.
+For transcript identification, we recommend using [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), other tools like [Bambu](https://github.com/GoekeLab/bambu) or [IsoQuant](https://github.com/ablab/IsoQuant) can also be used.
 * Input
   * `long_read.sorted.bam`: sorted long-read alignment file in BAM format
   * `ref.fa`: reference genome file in FASTA format
@@ -183,19 +184,19 @@ perl ESPRESSO_Q.pl -L esp_output_dir/for_esp_input.updated \
                    -V esp_output_dir/esp_cmpt.tsv
 ```
 
-**Note that `-V esp_cmpt.tsv` is optional in `ESPRESSO Q` step, but it is required if you want NanoHunter to output gene/transcript quantification information.**
+**Note that `-V esp_cmpt.tsv` is optional in `ESPRESSO Q` step, but it is required if you want scCirRL to output gene/transcript quantification information.**
 
 ## 1. Barcode & UMI calling
-NanoHunter identifies barcode and UMI from sorted alignment BAM file of single-cell long reads ***without*** using reference barcode from short-read data. 
+scCirRL identifies barcode and UMI from sorted alignment BAM file of single-cell long reads ***without*** using reference barcode from short-read data. 
 
 ### 1.1 Input 
 * Required:
   * `long_read.sorted.bam`: sorted long-read BAM (recommend using [minimap2](https://github.com/lh3/minimap2))
 * Optional:
-  * `read_isoform_compatible.tsv`: tabular file of compatible isoforms for all reads, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso) or IsoQuant
-  * `updated.gtf`: updated GTF annotation, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso) or IsoQuant
+  * `read_isoform_compatible.tsv`: tabular file of compatible isoforms for all reads, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), [Bambu](https://github.com/GoekeLab/bambu) or [IsoQuant](https://github.com/ablab/IsoQuant)
+  * `updated.gtf`: updated GTF annotation, generated by [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), [Bambu](https://github.com/GoekeLab/bambu) or [IsoQuant](https://github.com/ablab/IsoQuant)
   * `annotation.gtf`: reference annotation GTF file, to retrieve gene names if gene names are not provided in `updated.gtf`
-  * `cell_barcode.tsv`: reference cell barcode list. If provided, nanohunter will directly use it to guide the barcode calling, only long reads with cell barcodes in the provided list will be kept
+  * `cell_barcode.tsv`: reference cell barcode list. If provided, scCirRL will directly use it to guide the barcode calling, only long reads with cell barcodes in the provided list will be kept
   * barcode sequence length (default: 16)
   * max. allowed edit distance between barcode and reference barcode (default: 2)
   * UMI sequence length (default: 12)
@@ -203,18 +204,18 @@ NanoHunter identifies barcode and UMI from sorted alignment BAM file of single-c
 
 ### 1.2 Command
 ```
-nanohunter long_read.sorted.bam \
-           output_dir           \
-           -p updated.gtf          \
-           -m read_isoform_compatible.tsv \
-           -g annotation.gtf  \
+scCirRL long_read.sorted.bam \
+        output_dir           \
+        -t updated.gtf       \
+        -m read_isoform_compatible.tsv \
+        -g annotation.gtf
 ```
 ### 1.3 Output
 * `bc_umi.bam`: BAM file with barcode/UMI information for each long read, BAM tags: `CB` and `UB`, for barcode and UMI.  Note that only long read with barcode/UMI called are kept
 * `bc_umi.tsv`: tabular file with barcode/UMI/gene/transcript information for all barcode-called long reads
 * `expression_matrix/`: folder containing 10X format sparse expression matrix at both gene and transcript level, can be directly parsed using standard single-cell analysis tools, like [Seurat](https://satijalab.org/seurat/)/[Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html)
-* `ref_bc.tsv`: reference cell barcode list identified from long reads. Note that if cell barcode list was provided to NanoHunter, `ref_bc.tsv` file will not be generated
-* `high_qual_bc_umi.rank.tsv`: cell barcode list ranked by unique UMI count based on all high-quality long reads. Note that if cell barcode list was provided to NanoHunter, `high_qual_bc_umi.rank.tsv` file will not be generated
+* `ref_bc.tsv`: reference cell barcode list identified from long reads. Note that if cell barcode list was provided to scCirRL, `ref_bc.tsv` file will not be generated
+* `high_qual_bc_umi.rank.tsv`: cell barcode list ranked by unique UMI count based on all high-quality long reads. Note that if cell barcode list was provided to scCirRL, `high_qual_bc_umi.rank.tsv` file will not be generated
   
 Example of `bc_umi.tsv`:
 
@@ -229,7 +230,7 @@ All the downstream single-cell long-read analyses rely on the cell type clusteri
 Annotating the cell clusters is the process of assign cell type to each cell cluster. This could be performed manually or based on known reference annotation like [Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html).
 
 For example, for human peripheral blood mononuclear cells (PBMC), the clustering and annotation result can be obtained by mapping to the Azimuth human PBMC reference dataset. 
-<!-- (https://github.com/Xinglab/NanoHunter/tree/main/scripts_for_paper#run_azimuth.R) -->
+<!-- (https://github.com/Xinglab/scCirRL/tree/main/scripts_for_paper#run_azimuth.R) -->
 We provide an example [R script](scripts_for_paper/README.md#run_azimuth_pbmcr) for human PBMC data. For data from other species/tissues, this needs to be done manually by users.
 
 **Note that not having cell clusters annotated with cell types does not affect the downstream splicing analyses by scRMATS-long.
@@ -255,7 +256,7 @@ Or, if no cell type annotation was available:
 scRMATS-long performs ***pairwise comparison*** to identify differentially spliced genes/transcripts between each two cell types/clusters.
 ### 3.1 Input
 * Required
-  * `expression_matrix/transcript`: transcript count matrix directory, generated by NanoHunter
+  * `expression_matrix/transcript`: transcript count matrix directory, generated by scCirRL
   * `bc_to_cell_type.tsv`: list of barcode and corresponding cell type or cluster ID, generated by [Seurat](https://satijalab.org/seurat/)/[Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html)
   * `out_prefix`: prefix of output files
 * Optional
@@ -297,7 +298,7 @@ The allele-specific splicing analysis mainly consists of three steps:
 * Input
   * `wgs_phased.vcf`: WGS phased VCF file, generated from WGS short-read data using [GATK](https://gatk.broadinstitute.org/hc/en-us) and [SHAPEIT](https://odelaneau.github.io/shapeit5/)
   * `ref.fa`: reference genome fasta file
-  * `bc_umi.bam`: BAM file with barcode/UMI information, generated by NanoHunter
+  * `bc_umi.bam`: BAM file with barcode/UMI information, generated by scCirRL
 * Command
 ```
 # sort and index `bc_umi.bam`
@@ -318,7 +319,7 @@ whatshap haplotag wgs_phased.vcf bc_umi_sorted.bam \
   
 ### 4.2 Identify allele-specific splicing
 * Input
-  * `bc_umi.tsv`: tabular file with barcode/UMI/gene/transcript information, generated by NanoHunter
+  * `bc_umi.tsv`: tabular file with barcode/UMI/gene/transcript information, generated by scCirRL
   * `hap_list.tsv`: tabular file containing haplotype information, generated by [whatshap](https://whatshap.readthedocs.io/en/latest/index.html), see [above](#41-phase-long-reads-with-whatshap)
   * `bc_to_cell_type.tsv`: list of barcode and corresponding cell type or cluster ID, generated by [Seurat](https://satijalab.org/seurat/)/[Azimuth](https://satijalab.github.io/azimuth/articles/run_azimuth_tutorial.html) 
 
@@ -387,7 +388,7 @@ Example of `*_allele_spliced_gene_gwas_ld/gene.ld`:
 Given genes/transcripts of interest (cell-type-specific splicing/allele-specific spciling), scRMATS-long also offers visualization of your results in the single-cell UMAP space, based on the Seurat R package.
 
 ```
-# gene/transcript expression folder generated by NanoHunter
+# gene/transcript expression folder generated by scCirRL
 gene_mtx <- "output_dir/expression_matrix/gene"
 transcript_mtx <- "output_dir/expression_matrix/transcript"
 # script for UMAP plot
@@ -396,10 +397,10 @@ source("visualization.R)
 
 ### 5.1. UMAP plot of gene VIM and EPCAM
 ```
-scrmats_long_umap_plot(gene_mtx_dir = gene_mtx,
-                       # `feature_mtx_dir` needs to be only one folder/object or same size as `feature_list`
-                       feature_mtx_dir = gene_mtx,
-                       feature_list = c("VIM", "EPCAM"))
+scCirRL_umap_plot(gene_mtx_dir = gene_mtx,
+                  # `feature_mtx_dir` needs to be only one folder/object or same size as `feature_list`
+                  feature_mtx_dir = gene_mtx,
+                  feature_list = c("VIM", "EPCAM"))
 ```
 
 <img src="figs/PGmix_VIM_EPCAM_gene_umap.png" width="40%">
@@ -407,20 +408,20 @@ scrmats_long_umap_plot(gene_mtx_dir = gene_mtx,
 
 ### 5.2. UMAP plot of CD44 transcripts
 ```
-scrmats_long_umap_plot(gene_mtx_dir = gene_mtx,
-                       # `feature_mtx_dir` needs to be only one folder/object or the same size as `feature_list`
-                       feature_mtx_dir = transcript_mtx,
-                       feature_list = c("ENST00000433892", "ENST00000263398"))
+scCirRL_umap_plot(gene_mtx_dir = gene_mtx,
+                  # `feature_mtx_dir` needs to be only one folder/object or the same size as `feature_list`
+                  feature_mtx_dir = transcript_mtx,
+                  feature_list = c("ENST00000433892", "ENST00000263398"))
 ```
 
 <img src="figs/PGmix_CD44_transcripts_umap.png" width="40%">
 
 ### 5.3. UMAP plot of both CD44 gene and transcripts
 ```
-scrmats_long_umap_plot(gene_mtx_dir = gene_mtx,
-                       # `feature_mtx_dir` needs to be only one folder/object or the same size as `feature_list`
-                       feature_mtx_dir = c(gene_mtx, transcript_mtx, transcript_mtx),
-                       feature_list = c("CD44", "ENST00000433892", "ENST00000263398"))
+scCirRL_umap_plot(gene_mtx_dir = gene_mtx,
+                  # `feature_mtx_dir` needs to be only one folder/object or the same size as `feature_list`
+                  feature_mtx_dir = c(gene_mtx, transcript_mtx, transcript_mtx),
+                  feature_list = c("CD44", "ENST00000433892", "ENST00000263398"))
 ```
 
 <img src="figs/PGmix_CD44_gene_transcripts_umap.png" width="60%">
@@ -431,8 +432,8 @@ Note that, for `gene_mtx_dir` and `feature_mtx_dir`, you can also provide with S
 gene_obj = make_seurat_obj(gene_mtx)
 transcript_obj = make_seurat_obj(transcript_mtx)
 
-scrmats_long_umap_plot(gene_mtx_dir = gene_obj,
-                       # `feature_mtx_dir` needs to be only one folder/object or same size as `feature_list`
-                       feature_mtx_dir = c(gene_obj, transcript_obj, transcript_obj),
-                       feature_list = c("CD44", "ENST00000433892", "ENST00000263398"))
+scCirRL_umap_plot(gene_mtx_dir = gene_obj,
+                  # `feature_mtx_dir` needs to be only one folder/object or same size as `feature_list`
+                  feature_mtx_dir = c(gene_obj, transcript_obj, transcript_obj),
+                  feature_list = c("CD44", "ENST00000433892", "ENST00000263398"))
 ```

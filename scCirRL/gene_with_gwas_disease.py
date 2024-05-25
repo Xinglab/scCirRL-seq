@@ -682,7 +682,7 @@ def main():
     gene_to_gwas_traits, gene_to_gwas_parent_traits, gene_with_gwas = connect_gene_to_gwas_traits(donor_gene_to_snps, \
                                                                                                   all_gwas_snp_trait, ld_duckdb_fn)
     # gene_to_gwas_traits: {gene_name -> {traits : T/F}}
-    print(gene_with_gwas)
+    # print(gene_with_gwas)
 
     # write gene-wise gwas information to file
     output_gwas_traits(gene_name_to_id, gene_to_gwas_traits, gene_to_gwas_parent_traits, as_gwas_basic_out, as_gwas_basic_efo_out)

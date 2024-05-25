@@ -13,7 +13,7 @@ echo "python -m twine upload --repository testpypi dist/*"
 python -m twine upload --repository testpypi dist/*
 echo
 echo "Test install:"
-echo "python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps nanohunter"
+echo "python3 -m pip install --index-url https://test.pypi.org/simple/ --no-deps scCirRL"
 echo
 echo "All good? Upload to real PyPI:"
 echo python3 -m twine upload dist/*

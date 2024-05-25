@@ -6,25 +6,22 @@ import gzip
 from collections import defaultdict as dd
 
 from . import utils as ut
-from .parameter import nanohunter_para
+from .parameter import scrl_para_class
 
-# stru:
+# lib structure:
 # 5' ada | BC16 | UMI12 | polyT-cDNA | 3' ada
-# _5_ada = 'CTACACGACGCTCTTCCGATCT'
-# _3_ada = 'CCCATGTACTCTGCGTTGATACCACTGCTT'
-# _bu_len = 28
-# _ed_ratio = 0.3
+_5_ada = 'CTACACGACGCTCTTCCGATCT' # length: 22
+_3_ada = 'CTCTGCGTTGATACCACTGCTT' # length: 22
+# _5_ada = 'CTACACGACGCTCTTCCGATCT'[-12:] # length: 22
+# _3_ada = 'CTCTGCGTTGATACCACTGCTT'[:12] # length: 22
 
-# _5_k = int(len(_5_ada) * _ed_ratio)
+
 _ed = 'editDistance'
 _loc = 'locations'
 task = "locations"
 globa = "NW"
 infix = "HW"
 prefix = "SHW"
-
-
-
 
 comp_seq_dict = dd(lambda: 'N')
 comp_seq_dict.update({'A':'T', 'a':'T', 'C':'G', 'c':'G', 'G':'C', 'g':'C', 'T':'A', 't':'A', 'U':'A', 'u':'A'})
@@ -34,7 +31,7 @@ def revcomp(seq):
     rev_comp_seq = ''.join([comp_seq_dict[r] for r in rev_seq])
     return rev_comp_seq
 
-# def nh_init():
+# def scrl_init():
 #     global n_perfect_reads
 #     global n_perfect_in_ref_reads
 #     global n_perfect_uniq_to_ref_reads
@@ -46,30 +43,48 @@ def revcomp(seq):
 #     n_imperfect_in_ref_reads = 0
 #     n_imperfect_uniq_to_ref_reads = 0
 
-#     global nh_ref_bcs
-#     global nh_cand_ref_bc_seq
-#     # global nh_read_to_ref_bc_umi
-#     # global nh_perfect_bc_to_umi
-#     # global nh_assigned_reads
-#     nh_ref_bcs = []
-#     nh_cand_ref_bc_seq = ''
-#     # nh_read_to_ref_bc_umi = dict()
-#     # nh_perfect_bc_to_umi = dict()
-#     # nh_assigned_reads = dict()
+#     global scrl_ref_bcs
+#     global scrl_cand_ref_bc_seq
+#     # global scrl_read_to_ref_bc_umi
+#     # global scrl_perfect_bc_to_umi
+#     # global scrl_assigned_reads
+#     scrl_ref_bcs = []
+#     scrl_cand_ref_bc_seq = ''
+#     # scrl_read_to_ref_bc_umi = dict()
+#     # scrl_perfect_bc_to_umi = dict()
+#     # scrl_assigned_reads = dict()
 
-def collect_mp_fetch_set(nh_para=nanohunter_para()):
-    in_sam_fn = nh_para.long_bam
-    ut.err_log_format_time(nh_para.log_fn, __name__, "Collecting BAM fetch regions ...")
+# skip if:
+# . is_unmapped
+# . is_supplementary or is_secondary, if only_primary
+#   has supplementary (SA), if not skip_chimeric
+def check_for_skip(r=ps.AlignedSegment(), scrl_para=scrl_para_class()):
+    skip = False
+    tag = 'proper'
+    if r.is_unmapped or r.is_secondary:
+        skip = True
+        tag = 'unmapped'
+    if r.is_supplementary:
+        tag = 'non_primary'
+        if scrl_para.only_primary:
+            skip = True
+    if r.has_tag('SA'):
+        tag = 'chimeric'
+        if scrl_para.skip_chimeric:
+            skip = True
+    return skip, tag
+
+def collect_mp_fetch_set(scrl_para=scrl_para_class()):
+    in_sam_fn = scrl_para.long_bam
+    ut.err_log_format_time(scrl_para.log_fn, str="Pre-processing/scanning BAM ...")
     fetch_region_set = []
     n_total_reads = 0
     with ps.AlignmentFile(in_sam_fn) as in_sam:
         last_chrom, last_start, last_max_end = '', -1, -1
         first = True
         for r in in_sam:
-            if r.is_unmapped or r.is_supplementary or r.is_secondary:
-                continue
-            # filter out chimeric reads
-            if (r.cigar[0][0] == ps.CSOFT_CLIP and r.cigar[0][1]) > nh_para.max_clip_len or (r.cigar[-1][0] == ps.CSOFT_CLIP and r.cigar[-1][1] > nh_para.max_clip_len):
+            skip, tag = check_for_skip(r, scrl_para)
+            if skip:
                 continue
             qname, chrom, start, end = r.query_name, r.reference_name, r.reference_start, r.reference_end
             n_total_reads += 1
@@ -85,7 +100,7 @@ def collect_mp_fetch_set(nh_para=nanohunter_para()):
                 last_max_end = end
         fetch_region_set.append((last_chrom, last_start, last_max_end))
         # print('{}:{}-{}'.format(last_chrom, last_start, last_max_end))
-    ut.err_log_format_time(nh_para.log_fn, __name__, "Collecting BAM fetch regions done! ({} regions, {} total mapped reads)".format(len(fetch_region_set), n_total_reads))
+    ut.err_log_format_time(scrl_para.log_fn, str="Pre-processing/scanning BAM done! ({} regions, {} total mapped reads to process)".format(len(fetch_region_set), n_total_reads))
     return fetch_region_set, n_total_reads
 
 def is_rev_strand(r=ps.AlignedSegment()):
@@ -113,20 +128,24 @@ def is_rev_strand(r=ps.AlignedSegment()):
             return False
     return None
 
-def get_cand_seq(r=ps.AlignedSegment()):
+# |-cand_seq-polyT-cDNA-|
+# |-cDNA-polyA-cand_seq-|
+# cand_seq: up to 200 bp, contains barcode/UMI/adapter
+def get_cand_seq(r=ps.AlignedSegment(), cand_len=200):
     extra_len = 50
-    cand_len = 200
     cand_seq = ''
     is_rev = is_rev_strand(r)
     if is_rev is None:
         return ''
     elif is_rev:  # polyT
-        start = max(0, r.cigar[0][1]-cand_len)
-        end = min(r.cigar[0][1]+extra_len, r.query_length)
+        clip_len = r.cigar[0][1] if r.cigar[0][0] == ps.CSOFT_CLIP else 0
+        start = max(0, clip_len-cand_len)
+        end = min(clip_len+extra_len, r.query_length)
         cand_seq = r.query_sequence[start:end]
     else:  # polyA
-        start = max(-r.cigar[-1][1]-extra_len, -r.query_length)
-        end = -r.cigar[-1][1]+cand_len if -r.cigar[-1][1]+cand_len < 0 else r.query_length
+        clip_len = r.cigar[-1][1] if r.cigar[-1][0] == ps.CSOFT_CLIP else 0
+        start = max(-clip_len-extra_len, -r.query_length)
+        end = -clip_len+cand_len if -clip_len+cand_len < 0 else r.query_length
         cand_seq = revcomp(r.query_sequence[start:end])
     return cand_seq
 
@@ -191,8 +210,8 @@ def get_matched_bu(cand_bcs, bu, locs, bc_len, bc_max_ed, umi_len):
                     bus.append((bc, umi))
     return bus
 
-def collect_ref_barcodes(nh_para=nanohunter_para()):
-    list_fn, bc_len = nh_para.bc_list, nh_para.bc_len
+def collect_ref_barcodes(scrl_para=scrl_para_class()):
+    list_fn, bc_len = scrl_para.bc_list, scrl_para.bc_len
     ref_bcs = []
     if list_fn.endswith('.gz'):
         fp = gzip.open(list_fn, 'rt')
@@ -205,5 +224,5 @@ def collect_ref_barcodes(nh_para=nanohunter_para()):
         if ele[0] not in ref_bcs:
             ref_bcs.append(ele[0])
 
-    ut.err_log_format_time(nh_para.log_fn, __name__, "Collected {} reference barcodes from {}".format(len(ref_bcs), list_fn))
+    ut.err_log_format_time(scrl_para.log_fn, str="Collected {} reference barcodes from {}".format(len(ref_bcs), list_fn))
     return ref_bcs
