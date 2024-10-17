@@ -141,16 +141,19 @@ def get_cluster_reads(top_node, umi_network_graph):
 def get_cmpt_genes(cmpt_trans, trans_to_gene_id_name):
     if not cmpt_trans or not trans_to_gene_id_name: # no compatible transcript
         return {'NA'}, {'NA'}
-    gene_ids, gene_names = set(), set()
+    gene_ids, gene_names = [], [] #set(), set()
     for trans in cmpt_trans:
         if trans not in trans_to_gene_id_name:
             continue
-        gene_ids.add(trans_to_gene_id_name[trans]['id'])
-        gene_names.add(trans_to_gene_id_name[trans]['name'])
-    if gene_ids == set():
-        gene_ids = {'NA'}
-    if gene_names == set():
-        gene_names = {'NA'}
+        if trans_to_gene_id_name[trans]['id'] not in gene_ids:
+            gene_ids.append(trans_to_gene_id_name[trans]['id'])
+            gene_names.append(trans_to_gene_id_name[trans]['name'])
+        # gene_ids.add(trans_to_gene_id_name[trans]['id'])
+        # gene_names.add(trans_to_gene_id_name[trans]['name'])
+    if gene_ids == []: #set():
+        gene_ids = ['NA'] #{'NA'}
+    if gene_names == []: #set():
+        gene_names = ['NA'] #{'NA'}
     return gene_ids, gene_names
 
 # output NA for reads without compatible isoforms

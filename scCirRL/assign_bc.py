@@ -104,7 +104,7 @@ def assign_ref_bc1(mp_fetch_set1, in_bam, scrl_ref_bcs, scrl_cand_ref_bc_seq, re
 
 # def sp_assign_ref_bc(mp_fetch_set, scrl_ref_bcs, scrl_cand_ref_bc_seq, bc_len, bc_max_ed, umi_len, umi_max_ed, in_sam_fn, read_to_trans, trans_to_gene_id_name, out_bu_fn, out_bu_bam):
 def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_seq, 
-                     trans_to_gene_id_name, read_to_trans, read_to_cate, scrl_para=scrl_para_class()):
+                  trans_to_gene_id_name, read_to_trans, read_to_cate, scrl_para=scrl_para_class()):
     ut.err_log_format_time(scrl_para.log_fn, str="Assigning barcode & UMI ...")
     ut.err_log_progress_bar(scrl_para.log_fn)
     n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
@@ -113,7 +113,7 @@ def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_se
     n_existing_stars = 0
     # percentage_processed_reads = 10 # start from 5%
     with open(scrl_para.out_bu_fn, 'w') as out_fp, ps.AlignmentFile(scrl_para.long_bam) as in_bam:
-        out_fp.write('#CellBarcode\tUMI\tReadCount\tTranscriptID\tGeneID\tGeneName\tReadNames\n')
+        out_fp.write('#CellBarcode\tUMI\tReadCount\tTranscriptID\tGeneID\tGeneName\tReadNames\tTransCate\tSpliceTag\n')
         bam_header_dict = in_bam.header.to_dict()
         scrl_append_pg_dict = {'ID': __program__, 'PN': __program__, 'VN': __version__, 'CL': __cmd__}
         if 'PG' in bam_header_dict:
@@ -133,9 +133,7 @@ def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_se
                 n_existing_stars = ut.err_log_progress_star(scrl_para.log_fn, n_total_reads, n_processed_reads, n_existing_stars)
                 bu_reads, bc_eds, out_rs, umi_clu_res_dict, umi_clu_res_list, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = out_res
                 
-                for bc, umi, reads, cmpt_trans, cmpt_gene_id, cmpt_gene_names in umi_clu_res_list:
-                    out_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(bc, umi, len(reads), ','.join(cmpt_trans), ','.join(cmpt_gene_id), ','.join(cmpt_gene_names), ','.join(reads)))
-
+                splice_tags = dd(lambda: 'N') # N or Y
                 for read in bu_reads:
                     if read in umi_clu_res_dict:
                         bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names = umi_clu_res_dict[read]
@@ -150,7 +148,14 @@ def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_se
                         r.set_tag('TI', ','.join(cmpt_trans), 'Z')
                         r.set_tag('GI', ','.join(cmpt_gene_id), 'Z')
                         r.set_tag('GN', ','.join(cmpt_gene_names), 'Z')
+                        if r.has_tag('ts'):
+                            splice_tags[read] = 'Y'
                         out_bam.write(r)
+
+                for bc, umi, reads, cmpt_trans, cmpt_gene_id, cmpt_gene_names in umi_clu_res_list:
+                    out_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(bc, umi, len(reads), ','.join(cmpt_trans), ','.join(cmpt_gene_id), ','.join(cmpt_gene_names), 
+                                                                           ','.join(reads), ','.join([read_to_cate[read] for read in reads]),
+                                                                           ','.join(splice_tags[read] for read in reads)))
 
                 n_perfect_in_ref_reads += sub_n_perfect_in_ref_reads
                 n_perfect_uniq_to_ref_reads += sub_n_perfect_uniq_to_ref_reads

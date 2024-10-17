@@ -131,12 +131,12 @@ def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class()):
                     continue
                 if equal_trans != 'NA':
                     cate = 'FullLen'
-                    cmpt_trans_set.extend(equal_trans.rsplit(','))
-                if cmpt_trans != 'NA':
+                    cmpt_trans_set.extend([equal_trans.rsplit(',')[0]]) # only keep one trans if multiple equal
+                elif cmpt_trans != 'NA':
                     if cate == 'NA':
                         cate = 'Partial'
-                    cmpt_trans_set.extend(equal_trans.rsplit(','))
-                if cate == 'NA':
+                    cmpt_trans_set.extend(cmpt_trans.rsplit(','))
+                else:
                     continue
                 read_to_trans[qname] = cmpt_trans_set
                 read_to_cate[qname] = cate

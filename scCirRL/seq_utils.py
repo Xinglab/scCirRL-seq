@@ -183,7 +183,8 @@ def get_bu_from_seq(r, five_ada, five_max_ed, bc_len, umi_len):
             is_perfect = True
     else:
         _5_res = ed.align(five_ada, cand_seq, task=task, mode=infix, k=five_max_ed)
-        if _5_res[_ed] == -1:
+        # _poly = ed.align('T'*10, cand_seq, task=task, mode=infix, k=3)
+        if _5_res[_ed] == -1: # or _poly[_ed] == -1:
             return '', '', '', False
         start = _5_res[_loc][0][1] + 1
 

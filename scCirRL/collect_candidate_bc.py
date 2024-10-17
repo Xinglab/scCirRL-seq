@@ -8,7 +8,8 @@ from . import seq_utils as su
 from . import utils as ut
 from .parameter import scrl_para_class
 
-
+_min_cand_bc_for_knee_calling=1000
+_max_cand_bc_for_knee_calling=50000
 def get_knee_point(log_fn, umi_cnts):
     if len(umi_cnts) < 10:
         ut.err_log_format_time(log_fn, 'ERROR', 'Not able to detect knee point barcode: too few ({}) candidate barcodes.'.format(len(umi_cnts)))
@@ -17,7 +18,16 @@ def get_knee_point(log_fn, umi_cnts):
     bc_kneedle = KneeLocator(bc_ranks, umi_cnts, S=1.0, curve="concave", direction="increasing")
     return bc_kneedle.knee
 
-def get_cumulative_cnt(cnt, max_n=10000, min_cnt=2):
+def get_putative_knee_point(log_fn, umi_cnts):
+    knee_point_to_freq = dd(lambda: 0)
+    for n in range(_min_cand_bc_for_knee_calling, _max_cand_bc_for_knee_calling, 1):
+        knee_point = get_knee_point(log_fn, umi_cnts[:n])
+        knee_point_to_freq[knee_point] += 1
+    # set knee point with highest frequency as the final knee point
+    knee_point = sorted(knee_point_to_freq.items(), key=lambda x: -x[1])[0][0]
+    return knee_point
+
+def get_cumulative_cnt(cnt, max_n=_max_cand_bc_for_knee_calling, min_cnt=2):
     cumu_cnt = []
     cumu = 0
     n = 0
@@ -159,9 +169,9 @@ def sp_collect_cand_ref_bc(scrl_para=scrl_para_class()):
         
     else: # knee point
         # perfect_bc_to_umi_cnt = dict(sorted(perfect_bc_to_umi_cnt.items(), key=lambda d: (-d[1], d[0])))
-        perfect_bc_to_cumulative_umi_cnt = get_cumulative_cnt(perfect_bc_to_umi_cnt.values(), max_n=10000, min_cnt=2)  # TODO max_n
+        perfect_bc_to_cumulative_umi_cnt = get_cumulative_cnt(perfect_bc_to_umi_cnt.values(), max_n=_max_cand_bc_for_knee_calling, min_cnt=2)  # TODO max_n
         # first knee rank
-        perfect_knee_bc_rank = get_knee_point(scrl_para.log_fn, perfect_bc_to_cumulative_umi_cnt)  # multi by 1.1?
+        perfect_knee_bc_rank = get_putative_knee_point(scrl_para.log_fn, perfect_bc_to_cumulative_umi_cnt)  # multi by 1.1?
         ut.err_log_format_time(scrl_para.log_fn, str='Knee point barcode rank: {} (detected from {} barcodes, {} high-quality reads)'.format(perfect_knee_bc_rank, len(perfect_bc_to_cumulative_umi_cnt), n_perfect_reads))
         
         if perfect_knee_bc_rank is None:
@@ -171,6 +181,7 @@ def sp_collect_cand_ref_bc(scrl_para=scrl_para_class()):
 
     # 2nd knee point
     # merged_perfect_bc_to_umi_count = dict(sorted(merged_perfect_bc_to_umi_count.items(), key=lambda d: -d[1]))
+    # write_perfect_bu_cnt(merged_perfect_bc_to_umi_count, high_qual_bu_fn+'.2nd')
     # merged_perfect_bc_to_cumulative_umi_cnt = get_cumulative_cnt(merged_perfect_bc_to_umi_count.values(), max_n=10000, min_cnt=2)
     # ref_knee_bc_rank = get_knee_point(merged_perfect_bc_to_cumulative_umi_cnt)  # multi by 1.1?
     # extended_ref_bc_rank = int(ref_knee_bc_rank * 1.0)

@@ -5,15 +5,9 @@ from collections import defaultdict as dd
 import argparse
 from .__init__ import __version__, __program__
 
-def split_chimeric_bam(in_bam, out_bam, cmd):
+def split_chimeric_bam(in_bam, out_bam):
     with ps.AlignmentFile(in_bam) as in_fp:
-        bam_header_dict = in_fp.header.to_dict()
-        append_pg_dict = {'ID': __program__, 'PN': __program__, 'VN': __version__, 'CL': cmd}
-        if 'PG' in bam_header_dict:
-            bam_header_dict['PG'].append(append_pg_dict)
-        else:
-            bam_header_dict['PG'] = [append_pg_dict]
-        with ps.AlignmentFile(out_bam, mode='wb', header=bam_header_dict) as out_fp:
+        with ps.AlignmentFile(out_bam, mode='wb', template=in_fp) as out_fp:
             r = 0
             for read in in_fp:
                 if read.is_unmapped:
@@ -39,9 +33,8 @@ def parser_argv():
 
 def main():
     args = parser_argv()
-    cmd = ' '.join(sys.argv)
     in_bam, out_bam = args.in_bam, args.out_bam
-    split_chimeric_bam(in_bam, out_bam, cmd)
+    split_chimeric_bam(in_bam, out_bam)
 
 if __name__ == '__main__':
     main()

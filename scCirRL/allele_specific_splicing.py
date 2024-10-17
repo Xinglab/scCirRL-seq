@@ -14,11 +14,13 @@ fdr_thres = 0.05   # <= 0.05
 p_thres = 0.05     # <= 0.05
 delta_ratio = 0.05 # > 0.05
 
-_trans_phased_ratio = 0.8
-_trans_phased_cnt_per_allele = 10
-_gene_phased_ratio = 0.8
+_trans_phased_ratio = 0.7
+_trans_phased_cnt_per_allele = 5
+_gene_total_phased_cnt = 20
+_gene_phased_ratio = 0.7
 _phased_trans_cnt_per_gene = 2
 # filtered_out_gene_prefix = 'HLA-'
+
 
 ALL_HAPS = ['H1', 'H2']  # 'none'
 
@@ -66,11 +68,10 @@ class gene_wise_allele_specific_info:
                 trans_hap.add((trans, hap))
         return trans_hap
 
-folds=1
 def get_chisq_test_p_value(cnt=[]):
     cnt1, cnt2 = cnt[0], cnt[1]
-    cnt1 = [i*folds for i in cnt1]
-    cnt2 = [i*folds for i in cnt2]
+    cnt1 = [i for i in cnt1]
+    cnt2 = [i for i in cnt2]
     r1 = rb.IntVector(cnt1)
     r2 = rb.IntVector(cnt2)
     df = r.rbind(r1, r2)
@@ -79,46 +80,13 @@ def get_chisq_test_p_value(cnt=[]):
 
 def get_fisher_test_p_value(cnt=[]):
     cnt1, cnt2 = cnt[0], cnt[1]
-    cnt1 = [i*folds for i in cnt1]
-    cnt2 = [i*folds for i in cnt2]
+    cnt1 = [i for i in cnt1]
+    cnt2 = [i for i in cnt2]
     r1 = rb.IntVector(cnt1)
     r2 = rb.IntVector(cnt2)
     df = r.rbind(r1, r2)
     out = stats.fisher_test(df)
     return list(out[0])[0]
-
-def get_binomial_test_p_value(x, n, p=0.5, alternative='greater'):
-    """
-    Perform a binomial test using R's binom.test function via rpy2.
-
-    Parameters:
-        x: int
-            The number of successes.
-        n: int
-            The number of trials.
-        p: float, optional (default=0.5)
-            The hypothesized probability of success.
-        alternative: {'two.sided', 'less', 'greater'}, optional (default='two.sided')
-            The alternative hypothesis. 'two.sided' (default) tests if the probability of success is different from p.
-            'less' tests if the probability of success is less than p.
-            'greater' tests if the probability of success is greater than p.
-
-    Returns:
-        p_value: float
-            The p-value of the binomial test.
-    """
-    # Convert Python variables to R objects
-    x_r = rb.IntVector([x])
-    n_r = rb.IntVector([n])
-    p_r = rb.FloatVector([p])
-
-    # Import R's binom.test function
-    r_binom_test = r['binom.test']
-    # Perform the binomial test
-    result = r_binom_test(x=x_r, n=n_r, p=p_r, alternative=alternative)
-    # Extract the p-value from the result
-    p_value = result.rx2('p.value')[0]
-    return p_value
 
 def get_fdr(ps=[]):
     rp = rb.FloatVector(ps)
@@ -147,7 +115,7 @@ def get_reads_to_hap(hap_list):
 
 def get_hap(qnames, read_to_hap, trans_id, gene_name):
     hap_to_read_cnt = dd(lambda: 0)
-    for qname in qnames.rsplit(','):
+    for qname in qnames:
         if qname in read_to_hap:
             hap_to_read_cnt[read_to_hap[qname]] += 1
 
@@ -162,16 +130,32 @@ def get_hap(qnames, read_to_hap, trans_id, gene_name):
     else:  # 1 hap
         return list(hap_to_read_cnt.keys())[0]
 
-def get_cluster_wise_gene_to_trans_reads(scrl_bu_fn, bc_to_cluster, read_to_hap):
+def filter_by_read_type(_reads, _read_cates, read_type):
+    if read_type == []:
+        return _reads, _read_cates
+    reads, read_cates = [], []
+    for qname, cate in zip(_reads, _read_cates):
+        if cate in read_type:
+            reads.append(qname)
+            read_cates.append(cate)
+    return reads, read_cates
+
+def get_cluster_wise_gene_to_trans_reads(scrl_bu_fn, use_read_cnt, read_type, bc_to_cluster, read_to_hap):
     cluster_wise_gene_to_trans_reads = dd(lambda: dd(lambda: dd(lambda: dd(lambda: 0))))  # {bc: {gene: {trans: {hap: cnt}}}}
     gene_id_to_name = dict()
-    cluster_wise_stats = dd(lambda: dd(lambda: dd(lambda: 0)))
     with open(scrl_bu_fn) as fp:
+        header_idx = dict()
         for line in fp:
-            if line.startswith('#'):
-                continue
             ele = line.rsplit()
-            bc, umi, read_cnt, trans_id, gene_id, gene_name, read_names = ele
+            if line.startswith('#'):
+                ele[0] = ele[0][1:]
+                header_idx = {ele[i]: i for i in range(len(ele))}
+                continue
+            # bc, umi, read_cnt, trans_id, gene_id, gene_name, read_names, read_cates, split_cates = ele
+            bc = ele[header_idx['CellBarcode']]
+            trans_id, gene_id, gene_name = ele[header_idx['TranscriptID']], ele[header_idx['GeneID']], ele[header_idx['GeneName']]
+            read_names, read_cates = ele[header_idx['ReadNames']].rsplit(','), ele[header_idx['TransCate']].rsplit(',')
+            read_names, read_cates = filter_by_read_type(read_names, read_cates, read_type)
             if trans_id == 'NA' or ',' in trans_id or gene_id == 'NA' or ',' in gene_id:  # only keep single-match reads
                 continue
             # if gene_name.startswith(filtered_out_gene_prefix):
@@ -179,14 +163,14 @@ def get_cluster_wise_gene_to_trans_reads(scrl_bu_fn, bc_to_cluster, read_to_hap)
             if bc not in bc_to_cluster:
                 continue
             cluster = bc_to_cluster[bc]
-            hap = get_hap(read_names, read_to_hap, trans_id, gene_name)  # H1/H2/none
-            cluster_wise_gene_to_trans_reads[cluster][gene_id][trans_id][hap] += 1
+            if use_read_cnt:
+                for read in read_names:
+                    hap = read_to_hap[read]
+                    cluster_wise_gene_to_trans_reads[cluster][gene_id][trans_id][hap] += 1
+            else:
+                hap = get_hap(read_names, read_to_hap, trans_id, gene_name)  # H1/H2/none
+                cluster_wise_gene_to_trans_reads[cluster][gene_id][trans_id][hap] += 1
             gene_id_to_name[gene_id] = gene_name
-
-            cluster_wise_stats[cluster]['cells'][bc] = 1
-            cluster_wise_stats[cluster]['UMI']['total'] += 1
-            if hap != 'none':
-                cluster_wise_stats[cluster]['UMI']['phased'] += 1
     return cluster_wise_gene_to_trans_reads, gene_id_to_name
 
 # True/False: gene_total_count >= 10, n_trans >= 2, phased_count_per_trans >= 10, phased_ratio_per_trans >= 0.8
@@ -205,14 +189,14 @@ def set_as_gene(gene_to_as_info, gene, gene_name, cluster, as_type):
     # elif as_type == 'NoSplice':
         # gene_to_as_info[gene].add_nosplice_cell_type(cluster)
 
-def gene_fdr_corr_and_asts(gene_list, p_list, 
-                           gene_to_max_ratio, min_trans_cnt, 
-                           cluster_wise_gene_to_trans_reads, gene_id_to_name,
-                           asg_detailed_fp, asts_detailed_fp, 
-                           inc_non_sign_gene, inc_non_sign_trans, gene_to_as_info):
+def as_gene_fdr_corr_and_asts(gene_list, p_list, 
+                              gene_to_max_ratio, min_trans_cnt, 
+                              cluster_wise_gene_to_trans_reads, gene_id_to_name,
+                              asg_detailed_fp, asts_detailed_fp, 
+                              inc_non_sign_gene, inc_non_sign_trans, gene_to_as_info):
     gene_fdrs = get_fdr(p_list)
     for gene_, fdr, p in zip(gene_list, gene_fdrs, p_list):
-        cluster, gene_id = gene_.rsplit('+')
+        cluster, gene_id = gene_[0], gene_[1]
         gene_name = gene_id_to_name[gene_id]
         gene_to_trans_reads = cluster_wise_gene_to_trans_reads[cluster]
         transs = gene_to_trans_reads[gene_id].keys()
@@ -227,97 +211,66 @@ def gene_fdr_corr_and_asts(gene_list, p_list,
                    ','.join(list(map(str, hap1_ratios))), 
                    ','.join(list(map(str, hap2_ratios)))]
 
-        # allele-specific-expressed genes
+        is_as_gene = True
         if math.isnan(fdr):
             # XXX write nan fdr, where gene is allele-specific-expressed
+            is_as_gene = False
             if inc_non_sign_gene:
                 asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-            continue
+            elif not inc_non_sign_trans:
+                continue
         if len(gene_to_trans_reads[gene_id]) < min_trans_cnt:   # genes with < 2 haplotype-resolved transcripts
             print(f'{gene_id}:\tNoSplice')
+            is_as_gene = False
             if inc_non_sign_gene:
                 asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
             # set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'NoSplice')
-            continue
+            elif not inc_non_sign_trans:
+                continue
         elif fdr > fdr_thres or gene_to_max_ratio[gene_] <= delta_ratio:
+            is_as_gene = False
             set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'False')
             if inc_non_sign_gene:
                 asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-            continue
+            elif not inc_non_sign_trans:
+                continue
 
         # write significant allele-specific spliced genes to output file
-        set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'True')
-        asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
+        if is_as_gene:
+            set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'True')
+            asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
 
-        # perform fisher exact test to identify allele-specific transcripts
-        tot_cnt = dd(lambda: 0.0)  # {hap: tot_cnt of all trans}
-        for hap in ALL_HAPS:
-            for trans in gene_to_trans_reads[gene_id]:
-                tot_cnt[hap] += gene_to_trans_reads[gene_id][trans][hap]
-        for trans in gene_to_trans_reads[gene_id]:
-            cnts, ratios = [], []
+        if is_as_gene or inc_non_sign_trans:
+            # perform fisher exact test to identify allele-specific transcripts
+            tot_cnt = dd(lambda: 0.0)  # {hap: tot_cnt of all trans}
             for hap in ALL_HAPS:
-                cnt = [gene_to_trans_reads[gene_id][trans][hap], tot_cnt[hap] - gene_to_trans_reads[gene_id][trans][hap]]
-                cnts.append(cnt)
-                if tot_cnt[hap] == 0:
-                    ratios.append(0.0)
-                else:
-                    ratios.append(gene_to_trans_reads[gene_id][trans][hap] / tot_cnt[hap])
-            p = get_fisher_test_p_value(cnts)
-            out_str = [cluster, trans, p, gene_id, gene_name, fdr, 
-                       gene_to_trans_reads[gene_id][trans][ALL_HAPS[0]], 
-                       gene_to_trans_reads[gene_id][trans][ALL_HAPS[1]], ratios[0], ratios[1]]
-            as_hap = ALL_HAPS[0] if ratios[0] > ratios[1] else ALL_HAPS[1]
+                for trans in gene_to_trans_reads[gene_id]:
+                    tot_cnt[hap] += gene_to_trans_reads[gene_id][trans][hap]
+            for trans in gene_to_trans_reads[gene_id]:
+                cnts, ratios = [], []
+                for hap in ALL_HAPS:
+                    cnt = [gene_to_trans_reads[gene_id][trans][hap], tot_cnt[hap] - gene_to_trans_reads[gene_id][trans][hap]]
+                    cnts.append(cnt)
+                    if tot_cnt[hap] == 0:
+                        ratios.append(0.0)
+                    else:
+                        ratios.append(gene_to_trans_reads[gene_id][trans][hap] / tot_cnt[hap])
+                p = get_fisher_test_p_value(cnts)
+                out_str = [cluster, trans, p, gene_id, gene_name, fdr, 
+                        gene_to_trans_reads[gene_id][trans][ALL_HAPS[0]], 
+                        gene_to_trans_reads[gene_id][trans][ALL_HAPS[1]], ratios[0], ratios[1]]
+                as_hap = ALL_HAPS[0] if ratios[0] > ratios[1] else ALL_HAPS[1]
 
-            if abs(ratios[0] - ratios[1]) <= delta_ratio or math.isnan(p) or p > p_thres:
-                gene_to_as_info[gene_id].add_non_as_transcript_cell_type(cluster, trans)
-                if inc_non_sign_trans:
-                    asts_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-                continue
-            gene_to_as_info[gene_id].add_as_transcript_cell_type(cluster, trans, as_hap)
-            # write significant allele-specific spliced transcripts to output file
-            asts_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-
-# phased count filtering criteria for allele-specific expression: (gene only expressed in one haplotype)
-# 1. For gene: at least 1 haplotype-resolved transcripts for each gene
-# 2. For gene: overall phased ratio is 100%, i.e. all reads are phased
-# 3. For gene: total phased reads is at least 20
-def is_ae_gene(trans_to_hap_cnt):
-    min_ae_max_hap_ratio= 0.8
-    min_ae_gene_phased_ratio= 0.8
-    min_ae_gene_phased_cnt= 20
-    hap1_cnt, hap2_cnt, total_cnt = 0, 0, 0
-    for trans, hap_to_cnt in trans_to_hap_cnt.items():
-        cnt1, cnt2 = hap_to_cnt[ALL_HAPS[0]], hap_to_cnt[ALL_HAPS[1]]
-        hap1_cnt += cnt1
-        hap2_cnt += cnt2
-        total_cnt += sum(hap_to_cnt.values())
-    if total_cnt <= 0:
-        return False
-    if hap1_cnt + hap2_cnt >= min_ae_gene_phased_cnt and \
-        max(hap1_cnt, hap2_cnt)/(hap1_cnt + hap2_cnt) >= min_ae_max_hap_ratio and \
-        (hap1_cnt+hap2_cnt)/total_cnt >= min_ae_gene_phased_ratio:
-        return True
-    return False
-
-def write_ae_gene(cell_type, gene, trans_to_hap_cnt, gene_id_to_name, aseg_basic_fp):
-    hap1_cnts = [trans_to_hap_cnt[trans][ALL_HAPS[0]] for trans in trans_to_hap_cnt]
-    hap2_cnts = [trans_to_hap_cnt[trans][ALL_HAPS[1]] for trans in trans_to_hap_cnt]
-    non_hap_cnts = [trans_to_hap_cnt[trans]['none'] for trans in trans_to_hap_cnt] 
-    hap1_ratios = [cnt / sum(hap1_cnts) if sum(hap1_cnts) > 0 else 0 for cnt in hap1_cnts]
-    hap2_ratios = [cnt / sum(hap2_cnts) if sum(hap2_cnts) > 0 else 0 for cnt in hap2_cnts]
-    non_hap_ratios = [cnt / sum(non_hap_cnts) if sum(non_hap_cnts) > 0 else 0 for cnt in non_hap_cnts]
-    total_cnts = [sum(cnts) for cnts in [hap1_cnts, hap2_cnts, non_hap_cnts]]
-    total_ratios = [cnt / sum(total_cnts) if sum(total_cnts) > 0 else 0 for cnt in total_cnts]
-    aseg_basic_fp.write('\t'.join([cell_type, gene, gene_id_to_name[gene], ','.join(trans_to_hap_cnt.keys()),
-                                   ','.join(list(map(str, hap1_cnts))),
-                                   ','.join(list(map(str, hap2_cnts))),
-                                   ','.join(list(map(str, non_hap_cnts))),
-                                   ','.join(list(map(str, hap1_ratios))),
-                                   ','.join(list(map(str, hap2_ratios))),
-                                   ','.join(list(map(str, non_hap_ratios))),
-                                   ','.join(list(map(str, total_cnts))),
-                                   ','.join(list(map(str, total_ratios)))]) + '\n')
+                if abs(ratios[0] - ratios[1]) <= delta_ratio or math.isnan(p) or p > p_thres:
+                    if gene_id in gene_to_as_info:
+                        gene_to_as_info[gene_id].add_non_as_transcript_cell_type(cluster, trans)
+                    if inc_non_sign_trans:
+                        asts_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
+                    continue
+                if gene_id in gene_to_as_info:
+                    gene_to_as_info[gene_id].add_as_transcript_cell_type(cluster, trans, as_hap)
+                # write significant allele-specific spliced transcripts to output file
+                asts_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
 
 # phased count filtering criteria for allele-specific splicing:
 # 1. For gene: at least 2 haplotype-resolved transcripts for each gene
@@ -326,43 +279,34 @@ def write_ae_gene(cell_type, gene, trans_to_hap_cnt, gene_id_to_name, aseg_basic
 # 4. For gene: overall used-to-total ratio of each gene is at least 80%, 
 #    here `used` means the reads used for haplotype-resolved transcripts,
 # .  excluding the transcripts not having >= 10 phased reads in at least one haplotype
-def cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads, gene_id_to_name,
-                                          gene_detailed_out, trans_detailed_out, aseg_basic_out,
+def cluster_wise_allele_specific_splicing(cluster_wise_gene_to_trans_reads, gene_id_to_name,
+                                          gene_detailed_out, trans_detailed_out,
                                           inc_non_sign_gene, inc_non_sign_trans,
-                                          min_trans_phased_ratio=0.8, 
-                                          min_read_cnt=10,
-                                          min_gene_phased_ratio=0.8,
-                                          min_trans_cnt=2):
+                                          # ASS
+                                          min_trans_phased_ratio=0.8, min_read_cnt=5,
+                                          min_gene_phased_ratio=0.8, min_gene_total_phase_cnt=20, min_trans_cnt=2):
     gene_to_as_info = dd(lambda: None)
-    with open(gene_detailed_out, 'w') as gene_detailed_fp, open(trans_detailed_out, 'w') as trans_detailed_fp, \
-         open(aseg_basic_out, 'w') as aseg_basic_fp:
+    with open(gene_detailed_out, 'w') as gene_detailed_fp, open(trans_detailed_out, 'w') as trans_detailed_fp:
         gene_detailed_fp.write('\t'.join(['cell_type', 'gene_id', 'gene_name', 'gene_fdr', 'transcripts', 
                                           'hap1_counts', 'hap2_counts', 'hap1_ratios', 'hap2_ratios']) + '\n')
         trans_detailed_fp.write('\t'.join(['cell_type', 'transcript_id', 'transcript_pval', 'gene_id', 'gene_name', 'gene_fdr', 
                                            'hap1_count', 'hap2_count', 'hap1_ratio', 'hap2_ratio']) + '\n')
-        aseg_basic_fp.write('\t'.join(['cell_type', 'gene_id', 'gene_name', 'transcripts',
-                                       'hap1_counts', 'hap2_counts', 'non_hap_counts',
-                                       'hap1_ratios', 'hap2_ratios', 'non_hap_ratios',
-                                       'total_cnts', 'total_ratios']) + '\n')
-        # chi-square test on genes
-        gene_list, p_list, gene_to_max_ratio = [], [], dict()
+        # chi-square test on genes for allele-specific splicing
+        as_gene_list, as_p_list, as_gene_to_max_ratio = [], [], dict()
         # collect valid trans/gene for each cluster
         for cluster, gene_to_trans_reads in cluster_wise_gene_to_trans_reads.items():
             # only use isos with read count >= min_read_cnt in at least one allele
             # only use genes with trans >= min_trans_cnt
             genes = list(gene_to_trans_reads.keys())
             for gene in genes:
-                if gene == 'ENSG00000089127' and cluster == 'Mono':
-                    print('ok')
                 trans_to_hap_cnt = gene_to_trans_reads[gene]
-                if is_ae_gene(trans_to_hap_cnt):
-                    write_ae_gene(cluster, gene, trans_to_hap_cnt, gene_id_to_name, aseg_basic_fp)
                 transs = list(trans_to_hap_cnt.keys())
                 if len(transs) < min_trans_cnt: # gene with <2 transcripts
                     del gene_to_trans_reads[gene]
                     continue
                 gene_total_cnt = 0 # gene with gene_total_cnt < 20: None (low expression)
                 gene_total_phased_cnt = 0 # total phased cnt of all trans that have >= 10 phased reads in at least one haplotype
+                used_gene_phased_cnt = 0
                 for trans in transs:
                     hap_to_cnt = trans_to_hap_cnt[trans]
                     filtered_trans = True
@@ -378,16 +322,14 @@ def cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads, gene
                     # min_phased_trans_per_hap < 10 or transcript-wise phased_ratio < 0.8
                     if filtered_trans or phased_cnt / sum(hap_to_cnt.values()) < min_trans_phased_ratio:
                         del trans_to_hap_cnt[trans]
-                if len(trans_to_hap_cnt) < min_trans_cnt or gene_total_phased_cnt / gene_total_cnt < min_gene_phased_ratio: # gene-wise phase ratio < 0.8
+                    else:
+                        used_gene_phased_cnt += phased_cnt
+                if len(trans_to_hap_cnt) < min_trans_cnt or \
+                   gene_total_phased_cnt / gene_total_cnt < min_gene_phased_ratio or \
+                   used_gene_phased_cnt < min_gene_total_phase_cnt:
                     del gene_to_trans_reads[gene]
-                    # set_as_gene(gene_to_as_info, gene, gene_id_to_name[gene], cluster, "Unphased")
-                # elif len(trans_to_hap_cnt) < min_trans_cnt: # gene with <2 phased transcripts
-                    # del gene_to_trans_reads[gene]
-                    # set_as_gene(gene_to_as_info, gene, gene_id_to_name[gene], cluster, "NoSplice")
             for gene, trans_to_hap_cnt in gene_to_trans_reads.items():
-                gene_ = cluster + '+' + gene
-                if gene == 'ENSG00000089127' and cluster == 'Mono':
-                    print('ok')
+                gene_ = (cluster, gene)
                 cnts = []
                 for hap in ALL_HAPS:
                     cnt = []
@@ -397,21 +339,23 @@ def cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads, gene
                 # ratios of each iso
                 rat1 = [x / sum(cnts[0]) if sum(cnts[0]) > 0 else 0 for x in cnts[0]]
                 rat2 = [x / sum(cnts[1]) if sum(cnts[1]) > 0 else 0 for x in cnts[1]]
-                gene_to_max_ratio[gene_] = max([abs(x-y) for x, y in zip(rat1, rat2)])
+                as_gene_to_max_ratio[gene_] = max([abs(x-y) for x, y in zip(rat1, rat2)])
                 p = get_chisq_test_p_value(cnts)
-                gene_list.append(gene_)
-                p_list.append(p)
+                as_gene_list.append(gene_)
+                as_p_list.append(p)
             # within cluster FDR correction
-            # comment following 2 lines if across cluster FDR is applied
-            # gene_fdr_corr_and_asts(gene_list, p_list, gene_to_max_ratio, min_trans_cnt, 
-            #                        cluster_wise_gene_to_trans_reads, gene_id_to_name, 
-            #                        gene_detailed_fp, trans_detailed_fp,
-            #                        inc_non_sign_gene, inc_non_sign_trans, gene_to_as_info)
-            # gene_list, p_list, gene_to_max_ratio = [], [], dict()
-        # comment following 1 line if within cluster FDR is applied
-        gene_fdr_corr_and_asts(gene_list, p_list, gene_to_max_ratio, min_trans_cnt, 
-                               cluster_wise_gene_to_trans_reads, gene_id_to_name,
-                               gene_detailed_fp, trans_detailed_fp, inc_non_sign_gene, inc_non_sign_trans, gene_to_as_info)
+            # comment following lines if across cluster FDR is applied
+            # as_gene_fdr_corr_and_asts(as_gene_list, as_p_list, as_gene_to_max_ratio, min_trans_cnt, 
+            #                           cluster_wise_gene_to_trans_reads, gene_id_to_name, 
+            #                           gene_detailed_fp, trans_detailed_fp,
+            #                           inc_non_sign_gene, inc_non_sign_trans, gene_to_as_info)
+            # as_gene_list, as_p_list, as_gene_to_max_ratio = [], [], dict()
+        # across cluster FDR correction
+        # comment following lines if within cluster FDR is applied
+        as_gene_fdr_corr_and_asts(as_gene_list, as_p_list, as_gene_to_max_ratio, min_trans_cnt, 
+                                  cluster_wise_gene_to_trans_reads, gene_id_to_name,
+                                  gene_detailed_fp, trans_detailed_fp, 
+                                  inc_non_sign_gene, inc_non_sign_trans, gene_to_as_info)
     return gene_to_as_info
 
 def output_allele_specific_splicing(all_cell_types, gene_to_allele_specific, assg_stat_out, asst_stat_out):
@@ -448,10 +392,14 @@ def parser_argv():
     # add optional arguments
     # group: phasing parameters
     phase_par = parser.add_argument_group('phasing options')
+    phase_par.add_argument('-r', '--use-read-cnt', action='store_true', default=False, help='Use read count instead of UMI count')
+    phase_par.add_argument('--read-type', type=str, default='', help='Read type to consider for phasing, i.e., FSM. Use comma to separate mutliple types. Default: all read types')
     phase_par.add_argument('--trans-phased-ratio', type=float, default=_trans_phased_ratio, 
                            help='Min. phase ratio of transcript')
     phase_par.add_argument('--trans-phased-cnt-per-allele', type=int, default=_trans_phased_cnt_per_allele, 
                            help='Min. phased UMI count of transcript in at least one allele')
+    phase_par.add_argument('--gene-total-phased-cnt', type=int, default=_gene_total_phased_cnt, 
+                           help='Min. total phased UMI count of gene')
     phase_par.add_argument('--gene-phased-ratio', type=float, default=_gene_phased_ratio, 
                            help='Min. total phase ratio of gene')
     phase_par.add_argument('--phased-trans-cnt-per-gene', type=int, default=_phased_trans_cnt_per_gene, 
@@ -468,24 +416,29 @@ def main():
     args = parser_argv()
 
     scrl_bu_fn, bc_to_clu_tsv, hap_list, out_pre = args.scrl_bu, args.bc_cluster, args.hap_list, args.out_pre
+    use_read_cnt = args.use_read_cnt
+    read_types = args.read_type.rsplit(',')
+    if '' in read_types:
+        read_types.remove('')
     trans_phased_ratio, trans_phased_cnt_per_allele = args.trans_phased_ratio, args.trans_phased_cnt_per_allele
-    gene_phased_ratio, phased_trans_cnt_per_gene = args.gene_phased_ratio, args.phased_trans_cnt_per_gene
+    gene_total_phased_cnt, gene_phased_ratio, phased_trans_cnt_per_gene = args.gene_total_phased_cnt, args.gene_phased_ratio, args.phased_trans_cnt_per_gene
     stat_out, inc_non_sign_gene, inc_non_sign_trans = args.stat_out, args.inc_non_sign_gene, args.inc_non_sign_trans
 
-    aseg_detailed_out = out_pre + '_allele_expressed_gene.tsv'
-    assg_detailed_out = out_pre + '_allele_spliced_genes.tsv'
-    asst_detailed_out = out_pre + '_allele_spliced_transcripts.tsv'
+    assg_detailed_out = out_pre + '_ASS_genes.tsv'
+    asst_detailed_out = out_pre + '_ASS_transcripts.tsv'
 
     bc_to_cluster = parse_bc_cell_list(bc_to_clu_tsv)
     all_cell_types = set(bc_to_cluster.values())
     reads_to_hap = get_reads_to_hap(hap_list)
-    cluster_wise_gene_to_trans_reads, gene_id_to_name = get_cluster_wise_gene_to_trans_reads(scrl_bu_fn, bc_to_cluster, reads_to_hap)
+    cluster_wise_gene_to_trans_reads, gene_id_to_name = get_cluster_wise_gene_to_trans_reads(scrl_bu_fn, use_read_cnt, read_types, 
+                                                                                             bc_to_cluster, reads_to_hap)
     # allele-specific spliced gene/transcript
-    gene_to_allele_specific = cluster_wise_allele_specific_analysis(cluster_wise_gene_to_trans_reads, gene_id_to_name, 
-                                                                    assg_detailed_out, asst_detailed_out, aseg_detailed_out,
-                                                                    inc_non_sign_gene, inc_non_sign_trans,
-                                                                    trans_phased_ratio, trans_phased_cnt_per_allele, gene_phased_ratio,
-                                                                    phased_trans_cnt_per_gene)
+    gene_to_allele_specific = cluster_wise_allele_specific_splicing(cluster_wise_gene_to_trans_reads, gene_id_to_name, # input
+                                                                    assg_detailed_out, asst_detailed_out, # output
+                                                                    inc_non_sign_gene, inc_non_sign_trans, # output
+                                                                    trans_phased_ratio, trans_phased_cnt_per_allele, # parameters
+                                                                    gene_phased_ratio, gene_total_phased_cnt, phased_trans_cnt_per_gene)
+
     # write stat of all genes/transcripts to file
     if stat_out:
         assg_stat_out = out_pre + '_all_genes_stat.tsv'
