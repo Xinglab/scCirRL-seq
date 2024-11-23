@@ -79,14 +79,20 @@ def write_gene_trans_to_clu_cnt(gene_trans_clu_cnt, gene_clu_pct, all_clus, out_
                     trans_cpm_fp.write('\t{}'.format(0.0 if clu_to_total_cnt[clu] == 0.0 else 1000000 * cnt / clu_to_total_cnt[clu]))
                 trans_cpm_fp.write('\n')
 
+def parser_argv():
+    # parse command line arguments
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
+                                     description="{}: generate cluster-wise gene/transcript count/percent.expressed/CPM matrix".format(os.path.basename(__file__)))
+    parser.add_argument('mtx_dir', metavar='gene/trans_mtx_dir', type=str, help='Input gene/transcript count matrix directory')
+    parser.add_argument('bc_to_clu', metavar='bc_to_clu.tsv', type=str, help='Input barcode to cluster mapping file')
+    parser.add_argument('out_prefix', metavar='out_prefix', type=str, help='Output file prefix')
+    return parser.parse_args()
+
 def main():
-    if len(sys.argv) != 4:
-        print('{} gene/trans_mtx_dir bc_to_clu.tsv out_prefix'.format(sys.argv[0]))
-        print('\tgenerate cluster-wise gene/transcript count/percent.expressed/CPM matrix')
-        sys.exit(1)
-    feature_mtx_dir = sys.argv[1]
-    bc_to_clu_tsv = sys.argv[2]
-    out_prefix = sys.argv[3]
+    args = parser_argv()
+    feature_mtx_dir = args.mtx_dir
+    bc_to_clu_tsv = args.bc_to_clu
+    out_prefix = args.out_prefix
     bc_to_clu = get_bc_to_clu(bc_to_clu_tsv)
     all_clus = set(list(bc_to_clu.values()))
 

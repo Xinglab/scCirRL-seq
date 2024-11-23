@@ -1,6 +1,8 @@
 import sys
 import os
 import pysam as ps
+import argparse
+from .__init__ import __version__, __program__
 
 
 def split_bam(in_bam_fn, bc_to_cell, out_dir):
@@ -41,12 +43,19 @@ def parse_bc_cell_list(in_fn):
     return bc_to_cell
 
 
-def main():
-    if len(sys.argv) != 4:
-        print('{} in.sorted.bam(with CB tag) in.bc_cell.list out_dir'.format(sys.argv[0]))
-        sys.exit(1)
+def parser_argv():
+    # parse command line arguments
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
+                                     description="{}: split bam file by cell clusters".format(os.path.basename(__file__)))
+    parser.add_argument('in_bam', metavar='input.sam/bam', type=str, help='Input alignment file')
+    parser.add_argument('bc_to_cell_type', metavar='in.bc_to_cell_type.list', type=str, help='Input barcode to cell type list')
+    parser.add_argument('out_dir', metavar='output_dir', type=str, help='Output directory')
 
-    in_bam_fn, bc_cell_list, out_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+    return parser.parse_args()
+
+def main():
+    args = parser_argv()
+    in_bam_fn, bc_cell_list, out_dir = args.in_bam, args.bc_to_cell_type, args.out_dir
     bc_to_cell = parse_bc_cell_list(bc_cell_list)
     split_bam(in_bam_fn, bc_to_cell, out_dir)
 

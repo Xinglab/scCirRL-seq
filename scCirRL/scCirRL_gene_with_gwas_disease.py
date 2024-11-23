@@ -3,7 +3,7 @@ import os
 import argparse
 from collections import defaultdict as dd
 import vcf # pyvcf
-from utils import err_format_time
+from .utils import err_format_time
 # for GWAS/LD database
 import duckdb as db
 

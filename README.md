@@ -101,7 +101,7 @@ pip install scCirRL
 ### From source files
 ```
 git clone git@github.com:Xinglab/scCirRL-seq.git
-cd scCirRL-seq pip install .
+cd scCirRL-seq && pip install .
 ```
 
 ## 0. Preprocessing
