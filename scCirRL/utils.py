@@ -1,7 +1,7 @@
 import sys, os
 import time
 from threading import Thread
-import psutil
+# import psutil
 import datetime
 
 def open_err_log(log_fn):
@@ -30,7 +30,7 @@ def start_time():
 def err_log_end_time(log_fn):
     global ut_st_time
     fps = open_err_log(log_fn)
-    process = psutil.Process(os.getpid())
+    # process = psutil.Process(os.getpid())
     for fp in fps:
         fp.write('Elapsed time: {}\n'.format(datetime.timedelta(seconds=int(time.time()-ut_st_time))))
         # fp.write('Peak memory : {:.2f} GB\n\n'.format(process.memory_info().rss / 1024 / 1024 / 1024))
