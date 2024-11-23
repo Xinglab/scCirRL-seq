@@ -1,4 +1,5 @@
-# scCirRL: <ins>s</ins>ingle-<ins>c</ins>ell <ins>C</ins>haracterization of <ins>i</ins>soform <ins>r</ins>egulation using <ins>R</ins>NA-seq <ins>L</ins>ong reads
+<!-- # scCirRL: <ins>s</ins>ingle-<ins>c</ins>ell <ins>C</ins>haracterization of <ins>i</ins>soform <ins>r</ins>egulation using <ins>R</ins>NA-seq <ins>L</ins>ong reads -->
+# Haplotype-resolved full-length transcriptome analysis in single cells by scCirRL-seq
 
 <!-- [![Latest Release](https://img.shields.io/github/release/xinglab/scCirRL.svg?label=Release)](https://github.com/xinglab/scCirRL/releases/latest) -->
 <!-- [![Github All Releases](https://img.shields.io/github/downloads/xinglab/scCirRL/total.svg?label=Download)](https://github.com/xinglab/scCirRL/releases) -->
@@ -12,19 +13,21 @@
 
 - First version
 
-## What is scCirRL
-scCirRL is an analysis pipeline designed for single-cell RNA-seq long-read data.
-It mainly consists of two parts:
+## What is scCirRL-seq
+scCirRL-seq is a computational pipeline designed for single-cell RNA-seq long-read data.
+<!-- companioned with our single-cell long-read expermental protocol. -->
+It mainly consists of three parts:
 1. cell barcode/UMI calling: a standalone module for barcode/UMI calling and gene/transcript quantification
 2. alternative splicing analysis: modules for identification of cell type-specific and allele-specific splicing
+3. visualization of gene and transcript expression in single cells
 
 <img src="figs/github-workflow.png" width="70%">
 
 ## Table of Contents
-- [scCirRL: single-cell Characterization of isoform regulation using RNA-seq Long reads](#sccirrl-single-cell-characterization-of-isoform-regulation-using-rna-seq-long-reads)
+- [Haplotype-resolved full-length transcriptome analysis in single cells by scCirRL-seq](#haplotype-resolved-full-length-transcriptome-analysis-in-single-cells-by-sccirrl-seq)
   - [TODO: add one-line command to run, 1) barcode calling, 2) cell-type splicing, 3) allele-specific splicing](#todo-add-one-line-command-to-run-1-barcode-calling-2-cell-type-splicing-3-allele-specific-splicing)
   - [Updates (v0.0.1)](#updates-v001)
-  - [What is scCirRL](#what-is-sccirrl)
+  - [What is scCirRL-seq](#what-is-sccirrl-seq)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
     - [Operating system and python version](#operating-system-and-python-version)
