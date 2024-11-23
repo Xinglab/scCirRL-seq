@@ -424,8 +424,8 @@ def main():
     gene_total_phased_cnt, gene_phased_ratio, phased_trans_cnt_per_gene = args.gene_total_phased_cnt, args.gene_phased_ratio, args.phased_trans_cnt_per_gene
     stat_out, inc_non_sign_gene, inc_non_sign_trans = args.stat_out, args.inc_non_sign_gene, args.inc_non_sign_trans
 
-    assg_detailed_out = out_pre + '_ASS_genes.tsv'
-    asst_detailed_out = out_pre + '_ASS_transcripts.tsv'
+    assg_detailed_out = out_pre + '_allele_specific_spliced_genes.tsv'
+    asst_detailed_out = out_pre + '_allele_specific_spliced_transcripts.tsv'
 
     bc_to_cluster = parse_bc_cell_list(bc_to_clu_tsv)
     all_cell_types = set(bc_to_cluster.values())

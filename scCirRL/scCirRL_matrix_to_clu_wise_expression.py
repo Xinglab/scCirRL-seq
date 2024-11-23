@@ -2,7 +2,7 @@ import sys
 import os
 import gzip
 from collections import defaultdict as dd
-from .cell_type_specific_splicing import *
+from .scCirRL_cell_type_specific_splicing import *
 
 def write_gene_to_clu_cnt(gene_clu_cnt, gene_clu_pct, all_clus, out_prefix):
     gene_cnt_out = out_prefix + '.clu_wise_gene_cnt.tsv'
