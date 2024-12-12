@@ -217,30 +217,30 @@ def as_gene_fdr_corr_and_asts(gene_list, p_list,
             is_as_gene = False
             if inc_non_sign_gene:
                 asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-            elif not inc_non_sign_trans:
-                continue
+            # elif not inc_non_sign_trans:
+            continue
         if len(gene_to_trans_reads[gene_id]) < min_trans_cnt:   # genes with < 2 haplotype-resolved transcripts
             print(f'{gene_id}:\tNoSplice')
             is_as_gene = False
             if inc_non_sign_gene:
                 asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
             # set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'NoSplice')
-            elif not inc_non_sign_trans:
-                continue
+            # elif not inc_non_sign_trans:
+            continue
         elif fdr > fdr_thres or gene_to_max_ratio[gene_] <= delta_ratio:
             is_as_gene = False
             set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'False')
             if inc_non_sign_gene:
                 asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
-            elif not inc_non_sign_trans:
-                continue
+            # elif not inc_non_sign_trans:
+            continue
 
         # write significant allele-specific spliced genes to output file
         if is_as_gene:
             set_as_gene(gene_to_as_info, gene_id, gene_name, cluster, 'True')
             asg_detailed_fp.write('{}\n'.format('\t'.join(list(map(str, out_str)))))
 
-        if is_as_gene or inc_non_sign_trans:
+        if is_as_gene: #or inc_non_sign_trans:
             # perform fisher exact test to identify allele-specific transcripts
             tot_cnt = dd(lambda: 0.0)  # {hap: tot_cnt of all trans}
             for hap in ALL_HAPS:
