@@ -31,7 +31,6 @@ It mainly consists of three parts:
   - [Installation](#installation)
     - [Operating system and python version](#operating-system-and-python-version)
     - [Via conda (install locally for now)](#via-conda-install-locally-for-now)
-    - [Via pip (not work yet)](#via-pip-not-work-yet)
     - [From source files](#from-source-files)
   - [0. Preprocessing](#0-preprocessing)
     - [0.1 Mapping](#01-mapping)
@@ -93,10 +92,10 @@ conda create -n scCirRL-env python=3.8 scCirRL-seq
 conda activate scCirRL-seq
 ``` -->
 
-### Via pip (not work yet)
+<!-- ### Via pip (not work yet)
 ```
 pip install scCirRL
-```
+``` -->
 
 ### From source files
 ```
