@@ -389,7 +389,7 @@ def get_ld_snps(ld_cand_snps, gwas_snps, ld_con, ld_table_prefix, ld_populations
                 hap_snp_to_ld_gwas_snps.add((snp_b, snp_a, population, r2))
     return hap_snp_to_ld_gwas_snps
 
-def get_ld_scores(snps1, snps2, ld_con, chrom, ld_thres):
+def get_ld_scores(snps1, snps2, ld_con, ld_populations, chrom, ld_thres):
     if len(snps1) == 0 or len(snps2) == 0:
         return None
     ld_scores = dd(lambda: dd(lambda: 0))

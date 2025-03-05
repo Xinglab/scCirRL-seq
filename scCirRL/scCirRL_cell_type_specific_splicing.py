@@ -316,7 +316,7 @@ def cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, inc_non_sign
         gene_id, gene_name = gene.rsplit(',')
         if gene_list and gene_id not in gene_list:
             continue
-        if math.isnan(gene_fdr) or gene_fdr > fdr_thres or max_ratio < delta_ratio:
+        if math.isnan(gene_fdr) or gene_fdr > fdr_thres or max_ratio <= delta_ratio:
             continue
         # gene_fp.write('gene_id\tgene_name\tgene_fdr\tmax_delta_ratio\ttranscripts\tcell1_counts\tcell2_counts\tcell1_ratios\tcell2_ratios\t\tcell_type1\tcell_type2\n')
         ratios1, ratios2 = [cnt / sum(trans_cnt1s) for cnt in trans_cnt1s], [cnt / sum(trans_cnt2s) for cnt in trans_cnt2s]
@@ -332,7 +332,7 @@ def cluster_wise_differential_splice1(gene_trans_clu_cnt, ct1, ct2, inc_non_sign
             ratio1 = cnt1 / sum(trans_cnt1s) if sum(trans_cnt1s) > 0 else 0
             ratio2 = cnt2 / sum(trans_cnt2s) if sum(trans_cnt2s) > 0 else 0
             trans_p = get_fisher_test_p_value([fisher_trans_cnt1s, fisher_trans_cnt2s])
-            if math.isnan(trans_p) or trans_p > p_thres or abs(ratio1 - ratio2) < delta_ratio:
+            if math.isnan(trans_p) or trans_p > p_thres or abs(ratio1 - ratio2) <= delta_ratio:
                 if inc_non_sign_trans:
                     trans_fp.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format('\t'.join(gene.rsplit(',')), trans, gene_fdr, trans_p, abs(ratio1-ratio2), cnt1, cnt2, ratio1, ratio2, ct1, ct2))
                 continue
