@@ -110,11 +110,11 @@ def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class()):
     cmpt_iso_fn = scrl_para.cmpt_tsv
     # cates = scrl_para.cate
     # NA_idx = 0
-    if not os.path.exists(cmpt_iso_fn):
-        err_log_format_time(scrl_para.log_fn, 'Warning', 'No read-isoform compatible file found, no gene/transcript quantification will be output.')
-        return None
     read_to_trans = dd(lambda: [])
     read_to_cate = dd(lambda: 'NA')
+    if not os.path.exists(cmpt_iso_fn):
+        err_log_format_time(scrl_para.log_fn, 'Warning', 'No read-isoform compatible file found, no gene/transcript quantification will be output.')
+        return read_to_trans, read_to_cate
     err_log_format_time(scrl_para.log_fn, str='Collecting compatible transcripts from {}'.format(cmpt_iso_fn))
     with open(cmpt_iso_fn) as fp:
         for line in fp:
