@@ -14,7 +14,7 @@ from .seq_utils import collect_ref_barcodes, collect_mp_fetch_set
 from .collect_candidate_bc import collect_cand_ref_bc
 from .assign_bc import assign_ref_bc
 from .parse_quant_file import collect_read_to_trans, collect_trans_to_gene
-from .scCriRL_make_expression_matrix import make_10X_matrix
+from .scCirRL_make_expression_matrix import make_10X_matrix
 
 
 def parser_argv():
