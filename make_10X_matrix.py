@@ -1,3 +1,3 @@
-from scCirRL import scCriRL_make_expression_matrix
+from scCirRL import scCirRL_make_expression_matrix
 
-scCriRL_make_expression_matrix.main()
+scCirRL_make_expression_matrix.main()
