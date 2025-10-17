@@ -74,6 +74,7 @@ def assign_ref_bc1(mp_fetch_set1, in_bam, scrl_ref_bcs, scrl_cand_ref_bc_seq, re
     for r in in_bam.fetch(contig, start, end):
         qname = r.query_name
         skip, tag = su.check_for_skip(r, scrl_para)
+        # print(qname, tag, "Skip" if skip else "Process")
         if skip:
             continue
         n_processed_reads += 1

@@ -43,7 +43,7 @@ def parser_argv():
     barcode_umi_par.add_argument('-5', '--five-ada', type=str, default=_five_ada, help='5\' adapter sequence')
     barcode_umi_par.add_argument('-c', '--cell-count', type=int, default=-1, help='Number of cells to keep. By default, NanoHunter will automatically detect cell count based on knee point. If provided, only top N cells will be kept')
     barcode_umi_par.add_argument('-s', '--skip-chimeric', action='store_true', default=False, help='Skip read if it is chimeric, i.e., maps to multiple genomic regions')
-    barcode_umi_par.add_argument('-p', '--only-primary', action='store_true', default=False, help='Only use primary alignments, ignore any supplementary alignments (for chimeric reads)')
+    # barcode_umi_par.add_argument('-p', '--only-primary', action='store_true', default=False, help='Only use primary alignments, ignore any supplementary alignments (for chimeric reads)')
     return parser.parse_args()
 
 def set_scrl_para(args, scrl_para):
@@ -62,7 +62,7 @@ def set_scrl_para(args, scrl_para):
     scrl_para.five_ada = args.five_ada
     scrl_para.five_max_ed = int(len(scrl_para.five_ada) * 0.3)
     scrl_para.skip_chimeric = args.skip_chimeric
-    scrl_para.only_primary = args.only_primary
+    # scrl_para.only_primary = args.only_primary
     scrl_para.out_dir = args.out_dir
     if not os.path.exists(scrl_para.out_dir):
         os.makedirs(scrl_para.out_dir)

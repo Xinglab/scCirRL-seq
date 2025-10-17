@@ -17,7 +17,7 @@ class scrl_para_class:
         self.five_max_ed = int(len(self.five_ada) * 0.3)
         self.cell_count = -1
         self.skip_chimeric = False
-        self.only_primary = False
+        self.only_primary = True
         self.long_bam = ""
         self.updated_gtf = ""
         self.anno_gtf = ""
