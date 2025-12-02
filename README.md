@@ -34,7 +34,8 @@ It mainly consists of three parts:
     - [From source files](#from-source-files)
   - [0. Preprocessing](#0-preprocessing)
     - [0.1 Mapping](#01-mapping)
-    - [0.2 Transcript identification](#02-transcript-identification)
+    - [0.2 Mark potential chimeric long reads](#02-optional-mark-potential-chimeric-long-reads)
+    - [0.3 Transcript identification](#03-transcript-identification)
   - [1. Barcode \& UMI calling](#1-barcode--umi-calling)
     - [1.1 Input](#11-input)
     - [1.2 Command](#12-command)
@@ -150,7 +151,13 @@ minimap2 ref.fa long_read.fq/fa         \
 samtools view long_read.sam -b long_read.bam
 samtools sort long_read.bam -@ n_threads -o long_read.sorted.bam
 ```
-### 0.2 Transcript identification
+
+### 0.2 (optional) Mark potential chimeric long reads
+Optionally, you can use `scCirRL_split_chimeric_read` to mark potential chimeric long reads, which may rescue some reads from secondary alignments.
+```
+scCirRL_split_chimeric_read long_read.sorted.bam long_read.split.sorted.bam
+```
+### 0.3 Transcript identification
 For transcript identification, we recommend using [ESPRESSO(≥1.3.1)](https://github.com/Xinglab/espresso), other tools like [Bambu](https://github.com/GoekeLab/bambu) or [IsoQuant](https://github.com/ablab/IsoQuant) can also be used.
 * Input
   * `long_read.sorted.bam`: sorted long-read alignment file in BAM format
