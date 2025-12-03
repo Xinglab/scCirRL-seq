@@ -143,7 +143,7 @@ paftools.js gff2bed anno.gtf > anno_junc.bed12
 # 2. mapping with minimap2
 minimap2 ref.fa long_read.fq/fa         \
          --junc-bed anno_junc.bed12     \
-         -ax splice -ub -k14 -w4        \
+         -Yax splice -ub -k14 -w4       \
          --sam-hit-only --secondary=no  \
          -t n_threads -o long_read.sam
 
