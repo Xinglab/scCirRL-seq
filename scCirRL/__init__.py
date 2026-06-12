@@ -12,6 +12,11 @@ __scripts__ = [
                'scCirRL_split_bam_by_cluster',
                'scCirRL_split_chimeric_read',
                'scCirRL_make_expression_matrix',
+               # split-parallel-merge barcode calling workflow
+               'scCirRL_extract_reads',
+               'scCirRL_collect_ref_bc',
+               'scCirRL_assign_bc_from_tsv',
+               'scCirRL_merge_bc_umi',
                ]
 __version__ = '1.0.0.beta3'
 __author__  = 'Yan Gao'
