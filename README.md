@@ -11,7 +11,7 @@
 <!-- ## TODO: add one-line command to run, 1) barcode calling, 2) cell-type splicing, 3) allele-specific splicing -->
 ## Updates (v0.0.1)
 
-- First version
+- Added split-parallel-merge workflow for barcode & UMI calling on large BAM files (`scCirRL_extract_reads`, `scCirRL_collect_ref_bc`, `scCirRL_assign_bc_from_tsv`, `scCirRL_merge_bc_umi`)
 
 ## What is scCirRL-seq
 scCirRL-seq is a computational pipeline designed for single-cell RNA-seq long-read data.
@@ -34,12 +34,13 @@ It mainly consists of three parts:
     - [From source files](#from-source-files)
   - [0. Preprocessing](#0-preprocessing)
     - [0.1 Mapping](#01-mapping)
-    - [0.2 Mark potential chimeric long reads](#02-optional-mark-potential-chimeric-long-reads)
+    - [0.2 (optional) Mark potential chimeric long reads](#02-optional-mark-potential-chimeric-long-reads)
     - [0.3 Transcript identification](#03-transcript-identification)
   - [1. Barcode \& UMI calling](#1-barcode--umi-calling)
     - [1.1 Input](#11-input)
     - [1.2 Command](#12-command)
     - [1.3 Output](#13-output)
+    - [1.4 Parallel barcode \& UMI calling (for large BAM files)](#14-parallel-barcode--umi-calling-for-large-bam-files)
   - [2. Cell clustering and annotation](#2-cell-clustering-and-annotation)
   - [3. Cell type-specific splicing analysis](#3-cell-type-specific-splicing-analysis)
     - [3.1 Input](#31-input)
@@ -231,6 +232,110 @@ Example of `bc_umi.tsv`:
 |-|-|-|-|-|-|-|
 | ATCACGACACTTTAGG | ATCACATCCATG | 3 | ENST00000407249, ENST00000341832 | ENSG00000248333 | CDK11B | 741aa2c2-5840-4a29-bd90-3bdcb71604ba, 05f8432a-7f7e-446d-a6d5-8ab9e4eb5102, 6bb13ee1-7397-435c-8840-aeb2a90cf4ab |
 
+
+### 1.4 Parallel barcode & UMI calling (for large BAM files)
+
+For large BAM files, the barcode and UMI calling step can be split into parallel
+jobs and then merged. This four-step workflow produces identical outputs to the
+main `scCirRL` command.
+
+**Overview**
+
+| Step | Tool | Parallelisable | Description |
+|------|------|:-:|-------------|
+| 1 | `scCirRL_extract_reads`    | ✓ | BAM region → lightweight reads TSV |
+| 2 | `scCirRL_collect_ref_bc`   | – | All TSVs → reference barcode list |
+| 3 | `scCirRL_assign_bc_from_tsv` | ✓ | TSV chunk → `bc_umi.tsv` + tagged BAM chunk |
+| 4 | `scCirRL_merge_bc_umi`     | – | Merge TSV and BAM chunks |
+
+The intermediate reads TSV produced in step 1 stores the pre-extracted barcode/UMI
+candidate information per read (`qname`, mapping position, `bc`, `umi`, `bu`,
+`is_perfect`, `ts_tag`), so steps 2–4 never need to re-open the original BAM
+(except for the optional BAM output in step 3).
+
+**Step 1 — Extract reads (run in parallel, one job per chromosome/region)**
+```bash
+# split by chromosome
+for CHR in chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 \
+           chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19 \
+           chr20 chr21 chr22 chrX chrY; do
+    scCirRL_extract_reads long_read.sorted.bam \
+                          ${CHR}.reads.tsv.gz  \
+                          -r ${CHR} &
+done
+wait
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-r` / `--region` | all reads | Genomic region, e.g. `chr1` or `chr1:10000-50000` |
+| `-b` / `--bc-len` | 16 | Barcode length |
+| `-u` / `--umi-len` | 12 | UMI length |
+| `-5` / `--five-ada` | `CTACACGACGCTCTTCCGATCT` | 5′ adapter sequence |
+| `-s` / `--skip-chimeric` | False | Skip chimeric reads (reads with SA tag) |
+
+**Step 2 — Collect reference barcodes (single pass over all TSVs)**
+```bash
+scCirRL_collect_ref_bc chr*.reads.tsv.gz \
+                        ref_bc.tsv       \
+                        --high-qual-bc-rank high_qual_bc.rank.tsv
+```
+
+If a reference barcode list is already available (e.g. from 10X Cell Ranger):
+```bash
+scCirRL_collect_ref_bc chr*.reads.tsv.gz ref_bc.tsv -l barcodes.tsv.gz
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--high-qual-bc-rank` | `high_qual_bc.rank.tsv` | BC rank table output path |
+| `-c` / `--cell-count` | auto | Force top-N cell count; -1 = knee-point detection |
+| `-l` / `--bc-list` | – | Pre-existing reference barcode list (skips knee-point step) |
+
+**Step 3 — Assign barcodes & UMIs, tag BAM (run in parallel)**
+```bash
+for CHR in chr1 chr2 ... chrX chrY; do
+    scCirRL_assign_bc_from_tsv                       \
+        ${CHR}.reads.tsv.gz ref_bc.tsv               \
+        ${CHR}.bc_umi.tsv                            \
+        --in-bam  long_read.sorted.bam               \
+        --out-bam ${CHR}.bc_umi.bam                  \
+        --region  ${CHR}                             \
+        -g annotation.gtf                            \
+        -t updated.gtf                               \
+        -m read_isoform_compatible.tsv &
+done
+wait
+```
+
+Omit `--in-bam`, `--out-bam`, and `--region` if you only need the `bc_umi.tsv`
+output and not the tagged BAM.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--in-bam` | – | Original sorted BAM (required for BAM output) |
+| `--out-bam` | – | Output tagged BAM chunk |
+| `--region` | all reads | Must match the region used in step 1 |
+| `-g` / `--anno-gtf` | – | Reference annotation GTF |
+| `-t` / `--updated-gtf` | – | Updated GTF from ESPRESSO/Bambu |
+| `-m` / `--cmpt-tsv` | – | Read–isoform compatible TSV from ESPRESSO/Bambu |
+| `-b`, `-e`, `-u`, `-d`, `-5` | (same as `scCirRL`) | Barcode/UMI parameters |
+
+Each chunk BAM is indexed automatically after writing.
+
+**Step 4 — Merge**
+```bash
+scCirRL_merge_bc_umi bc_umi.tsv                  \
+    --tsv-chunks chr*.bc_umi.tsv                 \
+    --bam-chunks chr*.bc_umi.bam                 \
+    --out-bam    bc_umi.sorted.bam
+```
+
+Omit `--bam-chunks` and `--out-bam` if no BAM output was requested in step 3.
+
+The merged `bc_umi.tsv` and `bc_umi.sorted.bam` are drop-in replacements for
+the outputs of the main `scCirRL` command and are fully compatible with all
+downstream scCirRL-seq tools.
 
 ## 2. Cell clustering and annotation
 All the downstream single-cell long-read analyses rely on the cell type clustering result, which could be accomplished by running [Seurat](https://satijalab.org/seurat/) on the gene expression matrix.

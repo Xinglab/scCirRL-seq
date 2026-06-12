@@ -18,7 +18,7 @@ __scripts__ = [
                'scCirRL_assign_bc_from_tsv',
                'scCirRL_merge_bc_umi',
                ]
-__version__ = '1.0.0.beta3'
+__version__ = '0.0.1'
 __author__  = 'Yan Gao'
 __email__   = 'gaoy1@chop.edu'
 __description__ = 'Haplotype-resolved full-length transcriptome analysis in single cells by scCirRL-seq'
