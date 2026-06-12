@@ -256,9 +256,10 @@ candidate information per read (`qname`, mapping position, `bc`, `umi`, `bu`,
 **Step 1 — Extract reads (run in parallel, one job per chromosome/region)**
 ```bash
 # split by chromosome
+# Note: chrM (MT) is required to be included for single-cell analysis, as it is used to estimate the ambient RNA contamination level
 for CHR in chr1 chr2 chr3 chr4 chr5 chr6 chr7 chr8 chr9 chr10 \
            chr11 chr12 chr13 chr14 chr15 chr16 chr17 chr18 chr19 \
-           chr20 chr21 chr22 chrX chrY; do
+           chr20 chr21 chr22 chrX chrY chrM; do
     scCirRL_extract_reads long_read.sorted.bam \
                           ${CHR}.reads.tsv.gz  \
                           -r ${CHR} &
