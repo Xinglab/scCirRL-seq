@@ -162,10 +162,6 @@ def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_se
                 n_perfect_uniq_to_ref_reads += sub_n_perfect_uniq_to_ref_reads
                 n_imperfect_in_ref_reads += sub_n_imperfect_in_ref_reads
                 n_imperfect_uniq_to_ref_reads += sub_n_imperfect_uniq_to_ref_reads
-    # build index for output bam
-    ut.err_log_format_time(scrl_para.log_fn, str="Building index for {} ...".format(scrl_para.out_bu_bam))
-    ps.index(scrl_para.out_bu_bam)
-    ut.err_log_format_time(scrl_para.log_fn, str="Building index done!")
     n_total_assigned_reads = n_perfect_in_ref_reads + n_perfect_uniq_to_ref_reads + n_imperfect_in_ref_reads + n_imperfect_uniq_to_ref_reads
     assign_ratio = '(%.1f%%)' % (n_total_assigned_reads / n_total_reads * 100)
     bc_ed_count_str = '\n'.join(['%21d : %d (%.1f%%)' % (k, v, v/n_total_reads*100) for k, v in sorted(bc_ed_count_dict.items())])
@@ -177,6 +173,10 @@ Total cell barcodes   : {len(scrl_ref_bcs)}
 Barcode-called reads  : {n_total_assigned_reads} {assign_ratio}
 Barcode edit distance : read count\n{bc_ed_count_str}
 ''')
+    # build index for output bam
+    ut.err_log_format_time(scrl_para.log_fn, str="Building index for {} ...".format(scrl_para.out_bu_bam))
+    ps.index(scrl_para.out_bu_bam)
+    ut.err_log_format_time(scrl_para.log_fn, str="Building index done!")
 # Perfect In Reference:\t\t{n_perfect_in_ref_reads}
 # Perfect Unique to Reference:\t\t{n_perfect_uniq_to_ref_reads}
 # Imperfect In Reference:\t\t{n_imperfect_in_ref_reads}
