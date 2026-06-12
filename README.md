@@ -295,7 +295,7 @@ scCirRL_collect_ref_bc chr*.reads.tsv.gz ref_bc.tsv -l barcodes.tsv.gz
 
 **Step 3 — Assign barcodes & UMIs, tag BAM (run in parallel)**
 ```bash
-for CHR in chr1 chr2 ... chrX chrY; do
+for CHR in chr1 chr2 ... chrX chrY chrM; do
     scCirRL_assign_bc_from_tsv                       \
         ${CHR}.reads.tsv.gz ref_bc.tsv               \
         ${CHR}.bc_umi.tsv                            \
