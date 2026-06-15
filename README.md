@@ -309,20 +309,22 @@ done
 wait
 ```
 
-Omit `--in-bam`, `--out-bam`, and `--region` if you only need the `bc_umi.tsv`
-output and not the tagged BAM.
-
 | Option | Default | Description |
 |--------|---------|-------------|
+| `--region` | all reads | Genomic region to process (e.g. `chr1` or `chr1:10000-50000`). Filters reads in the TSV by coordinate, restricts the read–isoform compatible TSV to transcripts overlapping the region (via `-t` updated GTF), and limits the BAM pass to the same region. Should match the region used in step 1. |
 | `--in-bam` | – | Original sorted BAM (required for BAM output) |
 | `--out-bam` | – | Output tagged BAM chunk |
-| `--region` | all reads | Must match the region used in step 1 |
 | `-g` / `--anno-gtf` | – | Reference annotation GTF |
-| `-t` / `--updated-gtf` | – | Updated GTF from ESPRESSO/Bambu |
+| `-t` / `--updated-gtf` | – | Updated GTF from ESPRESSO/Bambu (required for region-aware filtering of the read–isoform compatible TSV) |
 | `-m` / `--cmpt-tsv` | – | Read–isoform compatible TSV from ESPRESSO/Bambu |
 | `-b`, `-e`, `-u`, `-d`, `-5` | (same as `scCirRL`) | Barcode/UMI parameters |
 
 Each chunk BAM is indexed automatically after writing.
+
+> **Note:** Omit `--in-bam` and `--out-bam` if you only need the `bc_umi.tsv` output.
+> `--region` is recommended whenever processing a sub-region: it reduces memory by
+> filtering both the reads TSV and the read–isoform compatible file on-the-fly
+> using transcript coordinates from the updated GTF.
 
 **Step 4 — Merge**
 ```bash
