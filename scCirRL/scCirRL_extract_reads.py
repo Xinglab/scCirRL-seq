@@ -51,6 +51,10 @@ def bam_to_reads_tsv(in_bam_fn, out_tsv_fn, bc_len, umi_len, five_ada,
     five_max_ed = para.five_max_ed
     n_written = 0
 
+    out_dir = os.path.dirname(os.path.abspath(out_tsv_fn))
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+
     with ps.AlignmentFile(in_bam_fn) as in_bam, _open(out_tsv_fn, 'w') as out_fp:
         out_fp.write(READS_TSV_HEADER)
 
@@ -64,6 +68,7 @@ def bam_to_reads_tsv(in_bam_fn, out_tsv_fn, bc_len, umi_len, five_ada,
         else:
             fetch_iter = in_bam.fetch()
 
+        n_total = 0
         for r in fetch_iter:
             skip, _ = check_for_skip(r, para)
             if skip:
@@ -80,6 +85,12 @@ def bam_to_reads_tsv(in_bam_fn, out_tsv_fn, bc_len, umi_len, five_ada,
                 1 if is_perfect else 0,
                 ts_tag))
             n_written += 1
+            n_total += 1
+            if n_total % 1_000_000 == 0:
+                sys.stderr.write('  {} M reads processed\r'.format(n_total // 1_000_000))
+                sys.stderr.flush()
+
+        sys.stderr.write('  {} reads processed\n'.format(n_total))
 
     return n_written
 
