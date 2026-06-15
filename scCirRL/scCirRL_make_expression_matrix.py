@@ -2,6 +2,7 @@ import argparse
 import sys
 import os
 import gzip
+import tempfile
 from scipy.sparse import csr_matrix  # for sparse matrix
 from collections import defaultdict as dd
 from .scCirRL_allele_specific_splicing import get_reads_to_hap
@@ -518,6 +519,131 @@ def make_matrix_data_with_hap_em(all_bc, bc_to_cluster, bu_to_hap_trans, gene_to
         hap_to_trans_mtx_data[hap] = scrl_matrix_data(hap_iso_matrix_row[hap], hap_iso_matrix_col[hap], hap_iso_matrix_data[hap], all_bc, iso_names)
     return hap_to_gene_mtx_data, hap_to_trans_mtx_data
 
+def get_bu_cmpt_streaming(in_bu_cmpt, trans_cate, only_splice, bc_to_cluster, tmp_dir):
+    """First pass: scan bc_umi.tsv and write each UMI line into a per-gene
+    temp file instead of accumulating everything in memory.
+
+    Returns
+    -------
+    all_bc : list[str]
+    gene_to_tmpfile : dict  {gene_key -> tmp_file_path}
+    gene_to_trans   : dict  {gene_key -> set of transcript IDs}
+    """
+    cand_bc = list(bc_to_cluster.keys())
+    gene_to_tmpfile = {}      # {gene: path}
+    gene_to_fp      = {}      # {gene: open file handle} — kept open during scan
+    gene_to_trans   = dd(lambda: set())
+    all_bc          = {}
+    i = 0
+
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    with open(in_bu_cmpt) as fp:
+        header = True
+        for line in fp:
+            if header:
+                header = False
+                continue
+            ele = line.rsplit()
+            bc, umi, read_cnt, trans_str, gene_id_str, gene_name_str, \
+                _reads, _read_cates, _read_splice_tags = ele
+            reads, read_cates, read_splice_tags = filter_by_read_cate(
+                _reads, _read_cates, _read_splice_tags, trans_cate, only_splice)
+            if len(reads) == 0:
+                continue
+            if ((cand_bc and bc not in cand_bc)
+                    or trans_str == 'NA' or gene_id_str == 'NA'
+                    or ',' in gene_id_str):
+                continue
+            # make umi unique across the whole file (same as get_bu_cmpt)
+            umi_uniq = umi + str(i)
+            trans = trans_str.rsplit(',')
+            gene  = gene_id_str + ',' + gene_name_str
+            gene_to_trans[gene] = gene_to_trans[gene].union(set(trans))
+            all_bc[bc] = 1
+            i += 1
+
+            if gene not in gene_to_fp:
+                tmp_path = os.path.join(tmp_dir, '{}.tmp'.format(len(gene_to_fp)))
+                gene_to_tmpfile[gene] = tmp_path
+                gene_to_fp[gene]      = open(tmp_path, 'w')
+            gene_to_fp[gene].write('{}\t{}\t{}\n'.format(bc, umi_uniq, ','.join(trans)))
+
+    for fh in gene_to_fp.values():
+        fh.close()
+
+    return list(all_bc.keys()), gene_to_tmpfile, gene_to_trans
+
+
+def make_matrix_data_streaming(all_bc, bc_to_cluster, gene_to_tmpfile, gene_to_trans):
+    """EM abundance estimation processing one gene at a time.
+
+    For each gene the per-gene temp file is loaded into a small dict, EM is
+    run, matrix rows are appended, then the temp file is deleted.  Peak memory
+    is proportional to the UMI count of the single largest gene instead of the
+    entire dataset.
+    """
+    # O(1) barcode-index lookup instead of list.index() for every matrix entry
+    bc_to_idx = {bc: idx + 1 for idx, bc in enumerate(all_bc)}
+
+    gene_matrix_row,  gene_matrix_col,  gene_matrix_data,  gene_names = [], [], [], []
+    iso_matrix_row,   iso_matrix_col,   iso_matrix_data,   iso_names  = [], [], [], []
+
+    all_clusters = list(set(bc_to_cluster.values())) or [default_cluster]
+    gene_i, trans_i = 1, 1
+
+    for gene, tmp_fn in gene_to_tmpfile.items():
+        all_trans        = list(gene_to_trans[gene])
+        gene_id, gene_name = gene.rsplit(',', 1)
+
+        # load this gene's (bc, umi) -> trans mapping from its temp file
+        bu_to_trans_gene = {}
+        with open(tmp_fn) as fh:
+            for line in fh:
+                bc, umi_uniq, trans_str = line.rstrip('\n').split('\t')
+                bu_to_trans_gene[(bc, umi_uniq)] = trans_str.split(',')
+        os.remove(tmp_fn)
+
+        bc_to_gene_abun  = dd(lambda: 0)
+        bc_to_trans_abun = dd(lambda: dd(lambda: 0))
+        for cluster in all_clusters:
+            bc_trans_abun = em_frac_abun1(
+                gene_name, all_trans, bu_to_trans_gene, cluster, bc_to_cluster)
+            for bc in bc_trans_abun:
+                for trans in bc_trans_abun[bc]:
+                    bc_to_gene_abun[bc]           += bc_trans_abun[bc][trans]
+                    bc_to_trans_abun[bc][trans]   += bc_trans_abun[bc][trans]
+
+        for bc, gene_abun in bc_to_gene_abun.items():
+            if gene_abun == 0.0:
+                continue
+            gene_matrix_row.append(gene_i)
+            gene_matrix_col.append(bc_to_idx[bc])
+            gene_matrix_data.append(gene_abun / theta_base)
+        gene_names.append(gene_id + '\t' + gene_name)
+        gene_i += 1
+
+        for bc in bc_to_trans_abun:
+            if bc_to_gene_abun[bc] == 0.0:
+                continue
+            for trans in bc_to_trans_abun[bc]:
+                trans_abun = bc_to_trans_abun[bc][trans]
+                if trans_abun == 0.0:
+                    continue
+                iso_matrix_row.append(trans_i + all_trans.index(trans))
+                iso_matrix_col.append(bc_to_idx[bc])
+                iso_matrix_data.append(trans_abun / theta_base)
+        for trans in all_trans:
+            iso_names.append(trans + '\t' + trans)
+        trans_i += len(all_trans)
+
+    gene_mtx_data  = scrl_matrix_data(
+        gene_matrix_row, gene_matrix_col, gene_matrix_data, all_bc, gene_names)
+    trans_mtx_data = scrl_matrix_data(
+        iso_matrix_row,  iso_matrix_col,  iso_matrix_data,  all_bc, iso_names)
+    return gene_mtx_data, trans_mtx_data
+
+
 def make_matrix_data_with_em(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans):
     gene_matrix_row, gene_matrix_col, gene_matrix_data, gene_names = [], [], [], []
     iso_matrix_row, iso_matrix_col, iso_matrix_data, iso_ratio_matrix_data, iso_names = [], [], [], [], []
@@ -587,32 +713,45 @@ def parser_argv():
 
 def make_10X_matrix_main(cell_to_cluster_tsv, hap_list_tsv, bu_fn, trans_cate, only_splice, out_mtx_dir, log_fn):
     err_log_format_time(log_fn, str='Writing cell-gene/transcript expression matrix ... ')
-    bu_fn, out_mtx_dir = bu_fn, out_mtx_dir
-    # add log info printout
     bc_to_cluster = parse_cell_cluster(cell_to_cluster_tsv)
     if not os.path.exists(out_mtx_dir):
         os.mkdir(out_mtx_dir)
-    # write_gene_to_trans_tsv(gene_to_trans, out_dir+'/transcript_ratio')
-    if hap_list_tsv:
-        read_to_hap = get_reads_to_hap(hap_list_tsv)
-        all_bc, bu_to_hap_trans, gene_to_trans = get_bu_hap_cmpt(bu_fn, trans_cate, only_splice, bc_to_cluster, read_to_hap)
-    else:
-        all_bc, bu_to_trans, gene_to_trans = get_bu_cmpt(bu_fn, trans_cate, only_splice, bc_to_cluster)
-    err_log_format_time(log_fn, str='Reading barcode-UMI-transcript/gene count done!')
 
     if hap_list_tsv:
-        hap_to_gene_mtx_data, hap_to_trans_mtx_data = make_matrix_data_with_hap_em(all_bc, bc_to_cluster, bu_to_hap_trans, gene_to_trans)
-        err_log_format_time(log_fn, str="Collecting haplotype-wise gene/transcript expression matrix done!")
+        # haplotype mode: bu_to_hap_trans is keyed by (bc, umi, hap) — keep existing path
+        read_to_hap = get_reads_to_hap(hap_list_tsv)
+        all_bc, bu_to_hap_trans, gene_to_trans = get_bu_hap_cmpt(
+            bu_fn, trans_cate, only_splice, bc_to_cluster, read_to_hap)
+        err_log_format_time(log_fn, str='Reading barcode-UMI-transcript/gene count done!')
+        hap_to_gene_mtx_data, hap_to_trans_mtx_data = make_matrix_data_with_hap_em(
+            all_bc, bc_to_cluster, bu_to_hap_trans, gene_to_trans)
+        err_log_format_time(log_fn, str='Collecting haplotype-wise gene/transcript expression matrix done!')
         for hap in ['H1', 'H2', 'none']:
-            hap_to_gene_mtx_data[hap].write_matrix_data(out_mtx_dir+'/gene_haplotype_'+hap)
-            hap_to_trans_mtx_data[hap].write_matrix_data(out_mtx_dir+'/transcript_haplotype_'+hap)
-            write_gene_to_trans_tsv(gene_to_trans, out_mtx_dir+'/transcript_haplotype_'+hap)
+            hap_to_gene_mtx_data[hap].write_matrix_data(out_mtx_dir + '/gene_haplotype_' + hap)
+            hap_to_trans_mtx_data[hap].write_matrix_data(out_mtx_dir + '/transcript_haplotype_' + hap)
+            write_gene_to_trans_tsv(gene_to_trans, out_mtx_dir + '/transcript_haplotype_' + hap)
     else:
-        gene_mtx_data, trans_mtx_data = make_matrix_data_with_em(all_bc, bc_to_cluster, bu_to_trans, gene_to_trans) 
+        # streaming mode: write per-gene temp files during first pass, run EM
+        # gene-by-gene to keep peak memory proportional to the largest single gene
+        tmp_dir = tempfile.mkdtemp(prefix='scCirRL_mtx_', dir=out_mtx_dir)
+        try:
+            all_bc, gene_to_tmpfile, gene_to_trans = get_bu_cmpt_streaming(
+                bu_fn, trans_cate, only_splice, bc_to_cluster, tmp_dir)
+            err_log_format_time(log_fn, str='Reading barcode-UMI-transcript/gene count done! '
+                                '({} barcodes, {} genes)'.format(len(all_bc), len(gene_to_trans)))
+            gene_mtx_data, trans_mtx_data = make_matrix_data_streaming(
+                all_bc, bc_to_cluster, gene_to_tmpfile, gene_to_trans)
+        finally:
+            # clean up temp dir (any remaining files if an error occurred mid-run)
+            if os.path.exists(tmp_dir):
+                for f in os.listdir(tmp_dir):
+                    os.remove(os.path.join(tmp_dir, f))
+                os.rmdir(tmp_dir)
         err_log_format_time(log_fn, str='Collecting cell-gene/transcript expression matrix done!')
-        gene_mtx_data.write_matrix_data(out_mtx_dir+'/gene')
-        trans_mtx_data.write_matrix_data(out_mtx_dir+'/transcript')
-        write_gene_to_trans_tsv(gene_to_trans, out_mtx_dir+'/transcript')
+        gene_mtx_data.write_matrix_data(out_mtx_dir + '/gene')
+        trans_mtx_data.write_matrix_data(out_mtx_dir + '/transcript')
+        write_gene_to_trans_tsv(gene_to_trans, out_mtx_dir + '/transcript')
+
     err_log_format_time(log_fn, str='Writing cell-gene/transcript expression matrix done!')
 
 def make_10X_matrix(cell_to_cluster_tsv, hap_list_tsv, scrl_para):

@@ -105,8 +105,71 @@ def collect_trans_to_gene(scrl_para=scrl_para_class()):
     return trans_to_gene_id_name
 
 
+def collect_trans_to_chrom_span(updated_gtf):
+    """Return {trans_id: (chrom, start, end)} from transcript lines in *updated_gtf*.
+
+    Used for region-aware filtering in collect_read_to_trans: only reads whose
+    compatible transcripts overlap the requested genomic region are loaded.
+    Coordinates are 1-based closed intervals as written in the GTF.
+    """
+    trans_to_span = {}
+    if not updated_gtf or not os.path.exists(updated_gtf):
+        return trans_to_span
+    with open(updated_gtf) as fp:
+        for line in fp:
+            if line.startswith('#'):
+                continue
+            ele = line.split('\t')
+            if len(ele) < 5 or ele[2] != 'transcript':
+                continue
+            chrom, start, end = ele[0], int(ele[3]), int(ele[4])
+            trans_id = ''
+            if 'transcript_id ' in line:
+                tmp = line[15 + line.index('transcript_id '):]
+                trans_id = tmp[:tmp.index('"')]
+            if trans_id:
+                trans_to_span[trans_id] = (chrom, start, end)
+    return trans_to_span
+
+
+def _trans_in_region(trans_ids, trans_to_span, reg_chrom, reg_start, reg_end):
+    """True if any transcript in *trans_ids* overlaps the region.
+
+    *reg_start* / *reg_end* are 0-based half-open (BAM/pysam convention).
+    GTF coordinates are 1-based closed, so overlap holds when
+    gtf_start <= reg_end and gtf_end >= reg_start+1.
+    When *reg_start* is None the check is chrom-only.
+    """
+    for tid in trans_ids:
+        span = trans_to_span.get(tid)
+        if span is None:
+            continue
+        chrom, t_start, t_end = span
+        if chrom != reg_chrom:
+            continue
+        if reg_start is None:
+            return True
+        if t_start <= reg_end and t_end >= reg_start + 1:
+            return True
+    return False
+
+
 # for Bambu or ESPRESSO, read only show up in one line, may follow by multiple isoforms
-def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class()):
+def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class(),
+                          region=None, trans_to_span=None):
+    """Load read→transcript compatibility from *scrl_para.cmpt_tsv*.
+
+    Parameters
+    ----------
+    region : str or None
+        Genomic region string, e.g. ``"chr1"`` or ``"chr1:10000-50000"``.
+        When provided, only reads whose compatible transcripts overlap the
+        region are loaded.  Requires *trans_to_span*.
+    trans_to_span : dict or None
+        Mapping ``{trans_id: (chrom, start, end)}`` from the updated GTF,
+        as returned by :func:`collect_trans_to_chrom_span`.  Only used when
+        *region* is set.
+    """
     cmpt_iso_fn = scrl_para.cmpt_tsv
     # cates = scrl_para.cate
     # NA_idx = 0
@@ -115,6 +178,16 @@ def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class()):
     if not os.path.exists(cmpt_iso_fn):
         err_log_format_time(scrl_para.log_fn, 'Warning', 'No read-isoform compatible file found, no gene/transcript quantification will be output.')
         return read_to_trans, read_to_cate
+
+    # parse region once
+    reg_chrom, reg_start, reg_end = None, None, None
+    if region and trans_to_span:
+        if ':' in region:
+            reg_chrom, span = region.split(':', 1)
+            reg_start, reg_end = map(int, span.split('-'))
+        else:
+            reg_chrom = region
+
     err_log_format_time(scrl_para.log_fn, str='Collecting compatible transcripts from {}'.format(cmpt_iso_fn))
     with open(cmpt_iso_fn) as fp:
         for line in fp:
@@ -138,6 +211,8 @@ def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class()):
                     cmpt_trans_set.extend(cmpt_trans.rsplit(','))
                 else:
                     continue
+                if reg_chrom and not _trans_in_region(cmpt_trans_set, trans_to_span, reg_chrom, reg_start, reg_end):
+                    continue
                 read_to_trans[qname] = cmpt_trans_set
                 read_to_cate[qname] = cate
             elif len(ele) == 4: # ESPRESSO
@@ -153,6 +228,8 @@ def collect_read_to_trans(trans_to_gene_id_name, scrl_para=scrl_para_class()):
                 for trans in cmpt_trans:
                     if trans in trans_to_gene_id_name:
                         cmpt_trans_set.append(trans)
+                if reg_chrom and not _trans_in_region(cmpt_trans_set, trans_to_span, reg_chrom, reg_start, reg_end):
+                    continue
                 if cmpt_trans_set:
                     read_to_trans[qname] = cmpt_trans_set
                 read_to_cate[qname] = cate

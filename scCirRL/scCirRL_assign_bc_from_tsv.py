@@ -24,7 +24,7 @@ import pysam as ps
 
 from .assign_bc import get_uniq_match_ref_bc
 from .cluster_umi import umi_clustering
-from .parse_quant_file import collect_trans_to_gene, collect_read_to_trans
+from .parse_quant_file import collect_trans_to_gene, collect_read_to_trans, collect_trans_to_chrom_span
 from .seq_utils import check_for_skip
 from .parameter import scrl_para_class, _bc_len, _umi_len, _five_ada, _bc_max_ed, _umi_max_ed
 from .utils import err_log_format_time
@@ -59,6 +59,29 @@ def _parse_region(region):
         start, end = span.split('-')
         return (chrom, int(start), int(end))
     return (region,)
+
+
+def _region_filter(region):
+    """Parse region string into (chrom, start, end) or (chrom, None, None).
+
+    Returns (None, None, None) when no region is specified.
+    """
+    if not region:
+        return None, None, None
+    if ':' in region:
+        chrom, span = region.split(':', 1)
+        start, end = span.split('-')
+        return chrom, int(start), int(end)
+    return region, None, None
+
+
+def _read_in_region(read_chrom, read_start, read_end, reg_chrom, reg_start, reg_end):
+    """True if the read overlaps [reg_start, reg_end) on reg_chrom."""
+    if read_chrom != reg_chrom:
+        return False
+    if reg_start is None:  # whole-chromosome region
+        return True
+    return int(read_start) < reg_end and int(read_end) > reg_start
 
 
 def _search_ref_bc_from_row(qname, bc, umi, bu, is_perfect,
@@ -162,6 +185,8 @@ def assign_bc_from_tsv(tsv_fn, ref_bcs, cand_ref_bc_seq,
     n_imperfect_in_ref, n_imperfect_uniq_to_ref = 0, 0
     n_total = 0
 
+    reg_chrom, reg_start, reg_end = _region_filter(region)
+
     # ── Pass 1: TSV ──────────────────────────────────────────────────────────
     with _open(tsv_fn, 'r') as fp:
         for line in fp:
@@ -171,6 +196,8 @@ def assign_bc_from_tsv(tsv_fn, ref_bcs, cand_ref_bc_seq,
             if len(ele) < 9:
                 continue
             qname, chrom, start, end, bc, umi, bu, is_perfect_str, ts_tag = ele[:9]
+            if reg_chrom and not _read_in_region(chrom, start, end, reg_chrom, reg_start, reg_end):
+                continue
             is_perfect = is_perfect_str == '1'
             n_total += 1
 
@@ -250,15 +277,16 @@ def parser_argv():
     parser.add_argument('out_bc_umi', metavar='out_bc_umi.tsv',
                         help='Output bc_umi TSV chunk')
 
+    parser.add_argument('--region', type=str, default='',
+                        help='Genomic region to process, e.g. chr1 or chr1:10000-50000. '
+                             'Filters reads in the TSV by coordinate and restricts the '
+                             'BAM pass to the same region. Default: process all reads.')
+
     bam_grp = parser.add_argument_group('BAM output (optional)')
     bam_grp.add_argument('--in-bam',  type=str, default='',
                          help='Original sorted BAM (required for BAM output)')
     bam_grp.add_argument('--out-bam', type=str, default='',
                          help='Output tagged BAM chunk path (e.g. chunk_chr1.bc_umi.bam)')
-    bam_grp.add_argument('--region',  type=str, default='',
-                         help='Genomic region matching the one used in scCirRL_extract_reads, '
-                              'e.g. chr1 or chr1:10000-50000. '
-                              'When omitted all reads in the BAM are scanned.')
 
     input_grp = parser.add_argument_group('input files (optional)')
     input_grp.add_argument('-g', '--anno-gtf',    type=str, default='')
@@ -292,7 +320,10 @@ def main():
     cand_ref_bc_seq = ('N' * (para.bc_max_ed + 1)).join(ref_bcs)
 
     trans_to_gene_id_name = collect_trans_to_gene(para)
-    read_to_trans, read_to_cate = collect_read_to_trans(trans_to_gene_id_name, para)
+    region = args.region or None
+    trans_to_span = collect_trans_to_chrom_span(para.updated_gtf) if region else None
+    read_to_trans, read_to_cate = collect_read_to_trans(
+        trans_to_gene_id_name, para, region=region, trans_to_span=trans_to_span)
 
     assign_bc_from_tsv(
         tsv_fn          = args.reads_tsv,
@@ -308,7 +339,7 @@ def main():
         umi_max_ed      = para.umi_max_ed,
         in_bam_fn       = args.in_bam   or None,
         out_bam_fn      = args.out_bam  or None,
-        region          = args.region   or None,
+        region          = region,
         only_primary    = True,
         skip_chimeric   = args.skip_chimeric,
         log_fn          = '')
