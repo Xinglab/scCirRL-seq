@@ -17,6 +17,7 @@ __scripts__ = [
                'scCirRL_collect_ref_bc',
                'scCirRL_assign_bc_from_tsv',
                'scCirRL_merge_bc_umi',
+               'scCirRL_split_cmpt_tsv',
                ]
 __version__ = '0.0.1'
 __author__  = 'Yan Gao'
