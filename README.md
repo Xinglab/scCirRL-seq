@@ -236,22 +236,24 @@ Example of `bc_umi.tsv`:
 ### 1.4 Parallel barcode & UMI calling (for large BAM files)
 
 For large BAM files, the barcode and UMI calling step can be split into parallel
-jobs and then merged. This four-step workflow produces identical outputs to the
+jobs and then merged. This six-step workflow produces identical outputs to the
 main `scCirRL` command.
 
 **Overview**
 
 | Step | Tool | Parallelisable | Description |
 |------|------|:-:|-------------|
-| 1 | `scCirRL_extract_reads`    | ✓ | BAM region → lightweight reads TSV |
-| 2 | `scCirRL_collect_ref_bc`   | – | All TSVs → reference barcode list |
-| 3 | `scCirRL_assign_bc_from_tsv` | ✓ | TSV chunk → `bc_umi.tsv` + tagged BAM chunk |
-| 4 | `scCirRL_merge_bc_umi`     | – | Merge TSV and BAM chunks |
+| 1 | `scCirRL_extract_reads`      | ✓ | BAM region → lightweight reads TSV |
+| 2 | `scCirRL_collect_ref_bc`     | – | All TSVs → reference barcode list |
+| 3 | `scCirRL_split_cmpt_tsv`     | – | Read–isoform compatible TSV → per-chromosome TSVs |
+| 4 | `scCirRL_assign_bc_from_tsv` | ✓ | TSV chunk → `bc_umi.tsv` + tagged BAM chunk |
+| 5 | `scCirRL_merge_bc_umi`       | – | Merge TSV and BAM chunks |
+| 6 | `scCirRL_make_expression_matrix` | – | `bc_umi.tsv` → gene/transcript expression matrix |
 
 The intermediate reads TSV produced in step 1 stores the pre-extracted barcode/UMI
 candidate information per read (`qname`, mapping position, `bc`, `umi`, `bu`,
-`is_perfect`, `ts_tag`), so steps 2–4 never need to re-open the original BAM
-(except for the optional BAM output in step 3).
+`is_perfect`, `ts_tag`), so steps 2–6 never need to re-open the original BAM
+(except for the optional BAM output in step 4).
 
 **Step 1 — Extract reads (run in parallel, one job per chromosome/region)**
 ```bash
@@ -275,7 +277,7 @@ wait
 | `-5` / `--five-ada` | `CTACACGACGCTCTTCCGATCT` | 5′ adapter sequence |
 | `-s` / `--skip-chimeric` | False | Skip chimeric reads (reads with SA tag) |
 
-**Step 2 — Collect reference barcodes (single pass over all TSVs)**
+**Step 2 — Collect reference barcodes (single pass over all TSVs, runs once)**
 ```bash
 scCirRL_collect_ref_bc chr*.reads.tsv.gz \
                         ref_bc.tsv       \
@@ -293,40 +295,57 @@ scCirRL_collect_ref_bc chr*.reads.tsv.gz ref_bc.tsv -l barcodes.tsv.gz
 | `-c` / `--cell-count` | auto | Force top-N cell count; -1 = knee-point detection |
 | `-l` / `--bc-list` | – | Pre-existing reference barcode list (skips knee-point step) |
 
-**Step 3 — Assign barcodes & UMIs, tag BAM (run in parallel)**
+**Step 3 — Split read–isoform compatible TSV by chromosome (runs once)**
+
+When a read–isoform compatible TSV is available (from ESPRESSO or Bambu), split
+it into per-chromosome files so that step 4 can filter each chunk on-the-fly
+without scanning the whole file.
+
+```bash
+scCirRL_split_cmpt_tsv read_isoform_compatible.tsv \
+                        updated.gtf                 \
+                        cmpt_by_chrom/              \
+                        --prefix cmpt
+# produces: cmpt_by_chrom/cmpt.chr1.tsv, cmpt.chr2.tsv, ..., cmpt.unassigned.tsv
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-p` / `--prefix` | `cmpt` | Filename prefix for output files |
+
+Step 3 can be skipped if no read–isoform compatible TSV is available; in that case omit `-m` in step 4.
+
+**Step 4 — Assign barcodes & UMIs, tag BAM (run in parallel)**
 ```bash
 for CHR in chr1 chr2 ... chrX chrY chrM; do
-    scCirRL_assign_bc_from_tsv                       \
-        ${CHR}.reads.tsv.gz ref_bc.tsv               \
-        ${CHR}.bc_umi.tsv                            \
-        --in-bam  long_read.sorted.bam               \
-        --out-bam ${CHR}.bc_umi.bam                  \
-        --region  ${CHR}                             \
-        -g annotation.gtf                            \
-        -t updated.gtf                               \
-        -m read_isoform_compatible.tsv &
+    scCirRL_assign_bc_from_tsv                            \
+        ${CHR}.reads.tsv.gz ref_bc.tsv                    \
+        ${CHR}.bc_umi.tsv                                 \
+        --region  ${CHR}                                  \
+        --in-bam  long_read.sorted.bam                    \
+        --out-bam ${CHR}.bc_umi.bam                       \
+        -g annotation.gtf                                 \
+        -t updated.gtf                                    \
+        -m cmpt_by_chrom/cmpt.${CHR}.tsv &
 done
 wait
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--region` | all reads | Genomic region to process (e.g. `chr1` or `chr1:10000-50000`). Filters reads in the TSV by coordinate, restricts the read–isoform compatible TSV to transcripts overlapping the region (via `-t` updated GTF), and limits the BAM pass to the same region. Should match the region used in step 1. |
+| `--region` | all reads | Genomic region to process (e.g. `chr1` or `chr1:10000-50000`). Filters reads in the TSV by coordinate, restricts the per-chromosome read–isoform compatible TSV to transcripts overlapping the region (via `-t` updated GTF), and limits the BAM pass to the same region. Should match the region used in step 1. |
 | `--in-bam` | – | Original sorted BAM (required for BAM output) |
 | `--out-bam` | – | Output tagged BAM chunk |
 | `-g` / `--anno-gtf` | – | Reference annotation GTF |
 | `-t` / `--updated-gtf` | – | Updated GTF from ESPRESSO/Bambu (required for region-aware filtering of the read–isoform compatible TSV) |
-| `-m` / `--cmpt-tsv` | – | Read–isoform compatible TSV from ESPRESSO/Bambu |
+| `-m` / `--cmpt-tsv` | – | Per-chromosome read–isoform compatible TSV from step 3 |
 | `-b`, `-e`, `-u`, `-d`, `-5` | (same as `scCirRL`) | Barcode/UMI parameters |
 
 Each chunk BAM is indexed automatically after writing.
 
 > **Note:** Omit `--in-bam` and `--out-bam` if you only need the `bc_umi.tsv` output.
-> `--region` is recommended whenever processing a sub-region: it reduces memory by
-> filtering both the reads TSV and the read–isoform compatible file on-the-fly
-> using transcript coordinates from the updated GTF.
 
-**Step 4 — Merge**
+**Step 5 — Merge**
 ```bash
 scCirRL_merge_bc_umi bc_umi.tsv                  \
     --tsv-chunks chr*.bc_umi.tsv                 \
@@ -334,9 +353,24 @@ scCirRL_merge_bc_umi bc_umi.tsv                  \
     --out-bam    bc_umi.sorted.bam
 ```
 
-Omit `--bam-chunks` and `--out-bam` if no BAM output was requested in step 3.
+Omit `--bam-chunks` and `--out-bam` if no BAM output was requested in step 4.
 
-The merged `bc_umi.tsv` and `bc_umi.sorted.bam` are drop-in replacements for
+**Step 6 — Generate expression matrix**
+```bash
+scCirRL_make_expression_matrix bc_umi.tsv \
+    expression_matrix/
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-c` / `--bc-cluster` | – | Cell barcode–cluster TSV (enables cluster-wise EM abundance estimation) |
+| `-t` / `--read-cate` | all | Only keep reads with specific transcript category, e.g. `FSM`. Comma-separated for multiple types. |
+| `-s` / `--splice` | False | Only keep reads with splice tag (minimap2 `ts` tag) |
+| `-a` / `--hap-list` | – | Haplotype assignment file from WhatsHap (enables haplotype-wise matrix) |
+
+Output files are written under `expression_matrix/gene/` and `expression_matrix/transcript/`, each containing `matrix.mtx.gz`, `features.tsv.gz`, and `barcodes.tsv.gz` in 10X sparse format.
+
+The merged `bc_umi.tsv` and `bc_umi.sorted.bam` from step 5 are drop-in replacements for
 the outputs of the main `scCirRL` command and are fully compatible with all
 downstream scCirRL-seq tools.
 
