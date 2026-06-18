@@ -3,6 +3,7 @@ import sys
 import os
 import gzip
 import tempfile
+import shutil
 from scipy.sparse import csr_matrix  # for sparse matrix
 from collections import defaultdict as dd
 from .scCirRL_allele_specific_splicing import get_reads_to_hap
@@ -531,7 +532,6 @@ def get_bu_cmpt_streaming(in_bu_cmpt, trans_cate, only_splice, bc_to_cluster, tm
     """
     cand_bc = list(bc_to_cluster.keys())
     gene_to_tmpfile = {}      # {gene: path}
-    gene_to_fp      = {}      # {gene: open file handle} — kept open during scan
     gene_to_trans   = dd(lambda: set())
     all_bc          = {}
     i = 0
@@ -563,14 +563,13 @@ def get_bu_cmpt_streaming(in_bu_cmpt, trans_cate, only_splice, bc_to_cluster, tm
             all_bc[bc] = 1
             i += 1
 
-            if gene not in gene_to_fp:
-                tmp_path = os.path.join(tmp_dir, '{}.tmp'.format(len(gene_to_fp)))
+            if gene not in gene_to_tmpfile:
+                tmp_path = os.path.join(tmp_dir, '{}.tmp'.format(len(gene_to_tmpfile)))
                 gene_to_tmpfile[gene] = tmp_path
-                gene_to_fp[gene]      = open(tmp_path, 'w')
-            gene_to_fp[gene].write('{}\t{}\t{}\n'.format(bc, umi_uniq, ','.join(trans)))
-
-    for fh in gene_to_fp.values():
-        fh.close()
+            # open in append mode so each gene's file is opened and closed per write,
+            # avoiding hitting the OS open-file-descriptor limit with large gene counts
+            with open(gene_to_tmpfile[gene], 'a') as fh:
+                fh.write('{}\t{}\t{}\n'.format(bc, umi_uniq, ','.join(trans)))
 
     return list(all_bc.keys()), gene_to_tmpfile, gene_to_trans
 
@@ -744,9 +743,7 @@ def make_10X_matrix_main(cell_to_cluster_tsv, hap_list_tsv, bu_fn, trans_cate, o
         finally:
             # clean up temp dir (any remaining files if an error occurred mid-run)
             if os.path.exists(tmp_dir):
-                for f in os.listdir(tmp_dir):
-                    os.remove(os.path.join(tmp_dir, f))
-                os.rmdir(tmp_dir)
+                shutil.rmtree(tmp_dir)
         err_log_format_time(log_fn, str='Collecting cell-gene/transcript expression matrix done!')
         gene_mtx_data.write_matrix_data(out_mtx_dir + '/gene')
         trans_mtx_data.write_matrix_data(out_mtx_dir + '/transcript')
