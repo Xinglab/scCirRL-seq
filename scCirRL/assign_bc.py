@@ -98,8 +98,8 @@ def assign_ref_bc1(mp_fetch_set1, in_bam, scrl_ref_bcs, scrl_cand_ref_bc_seq, re
     # UMI clustering within each bc
     # return:
     # (bc, umi, reads, cmpt_trans)
-    umi_clu_res_dict, umi_clu_res_list = cu.umi_clustering(scrl_para.log_fn, read_to_trans, trans_to_gene_id_name, bu_res, scrl_para.umi_max_ed)
-    res = [bu_reads, bc_eds, out_rs, umi_clu_res_dict, umi_clu_res_list, n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads]
+    umi_clu_res_dict, umi_clu_res_list, umi_ed_count_dict = cu.umi_clustering(scrl_para.log_fn, read_to_trans, trans_to_gene_id_name, bu_res, scrl_para.umi_max_ed)
+    res = [bu_reads, bc_eds, out_rs, umi_clu_res_dict, umi_clu_res_list, umi_ed_count_dict, n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads]
     return res, n_processed_reads
 
 
@@ -110,6 +110,7 @@ def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_se
     ut.err_log_progress_bar(scrl_para.log_fn)
     n_perfect_in_ref_reads, n_perfect_uniq_to_ref_reads, n_imperfect_in_ref_reads, n_imperfect_uniq_to_ref_reads = 0, 0, 0, 0
     bc_ed_count_dict = dd(lambda: 0) # {bc_ed: count}
+    umi_ed_count_dict = dd(lambda: 0) # {umi_ed: count}
     n_processed_reads = 0
     n_existing_stars = 0
     # percentage_processed_reads = 10 # start from 5%
@@ -132,12 +133,12 @@ def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_se
                                                              scrl_para)
                 n_processed_reads += _n_processed_reads
                 n_existing_stars = ut.err_log_progress_star(scrl_para.log_fn, n_total_reads, n_processed_reads, n_existing_stars)
-                bu_reads, bc_eds, out_rs, umi_clu_res_dict, umi_clu_res_list, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = out_res
-                
+                bu_reads, bc_eds, out_rs, umi_clu_res_dict, umi_clu_res_list, sub_umi_ed_count_dict, sub_n_perfect_in_ref_reads, sub_n_perfect_uniq_to_ref_reads, sub_n_imperfect_in_ref_reads, sub_n_imperfect_uniq_to_ref_reads = out_res
+
                 splice_tags = dd(lambda: 'N') # N or Y
                 for read in bu_reads:
                     if read in umi_clu_res_dict:
-                        bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names = umi_clu_res_dict[read]
+                        bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names, umi_ed = umi_clu_res_dict[read]
                         cate = read_to_cate[read]
                         r = out_rs[read]
                         bc_ed = bc_eds[read]
@@ -162,16 +163,20 @@ def assign_ref_bc(mp_fetch_set, n_total_reads, scrl_ref_bcs, scrl_cand_ref_bc_se
                 n_perfect_uniq_to_ref_reads += sub_n_perfect_uniq_to_ref_reads
                 n_imperfect_in_ref_reads += sub_n_imperfect_in_ref_reads
                 n_imperfect_uniq_to_ref_reads += sub_n_imperfect_uniq_to_ref_reads
+                for umi_ed, count in sub_umi_ed_count_dict.items():
+                    umi_ed_count_dict[umi_ed] += count
     n_total_assigned_reads = n_perfect_in_ref_reads + n_perfect_uniq_to_ref_reads + n_imperfect_in_ref_reads + n_imperfect_uniq_to_ref_reads
     assign_ratio = '(%.1f%%)' % (n_total_assigned_reads / n_total_reads * 100)
     bc_ed_count_str = '\n'.join(['%21d : %d (%.1f%%)' % (k, v, v/n_total_reads*100) for k, v in sorted(bc_ed_count_dict.items())])
-    
+    umi_ed_count_str = '\n'.join(['%21d : %d (%.1f%%)' % (k, v, v/n_total_reads*100) for k, v in sorted(umi_ed_count_dict.items())])
+
     ut.err_log_format_time(scrl_para.log_fn, str="Assigning barcode & UMI done!")
     ut.err_log_format_time(scrl_para.log_fn, str="Barcode calling summary:\n" +
 f'''Total mapped reads    : {n_total_reads}
 Total cell barcodes   : {len(scrl_ref_bcs)}
 Barcode-called reads  : {n_total_assigned_reads} {assign_ratio}
 Barcode edit distance : read count\n{bc_ed_count_str}
+UMI edit distance     : read count\n{umi_ed_count_str}
 ''')
     # build index for output bam
     ut.err_log_format_time(scrl_para.log_fn, str="Building index for {} ...".format(scrl_para.out_bu_bam))
