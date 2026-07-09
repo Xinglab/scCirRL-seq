@@ -14,6 +14,7 @@ class UMIDirectionalNetworkNode:
         self.node_id = node_id
         self.son_ids = []
         self.top_id = NULL_node_id
+        self.from_id = NULL_node_id  # directly connected (parent) node in the network
         self.cmpt_trans = trans
         # self.cDNA_seqs = []
         # self.poa_aln = pa.msa_aligner()
@@ -118,6 +119,7 @@ def build_umi_network_graph(umi_to_reads, perfect_umi, read_to_trans, umi_max_ed
             from_id = search_for_umi_from_node(umi_graph_id_dict, node_id, umi_max_ed)
             if from_id != NULL_node_id:
                 from_node = umi_graph_id_dict[from_id]
+                node.from_id = from_id  # directly connected node
                 node.top_id = from_node.top_id  # XXX top_id: perfect_bc_umi with a higher read count XXX
                 top_node = umi_graph_id_dict[node.top_id]
                 top_node.cmpt_trans = from_node.cmpt_trans
@@ -138,22 +140,29 @@ def get_cluster_reads(top_node, umi_network_graph):
             tot_read[read] = 1
     return list(tot_read.keys())
 
-# for each read in the cluster, get the edit distance between its own (raw)
-# UMI and the cluster's representative (top node's) UMI
+def _umi_pair_ed(umi1, umi2):
+    if umi1 == umi2:
+        return 0
+    return ed.align(umi1, umi2, task="distance", mode="NW")['editDistance']
+
+# for each read in the cluster, get two UMI edit distances:
+#   to_top_ed : between the read's own (raw) UMI and the cluster's
+#               representative (top node's) UMI
+#   to_conn_ed: between the read's own UMI and the UMI of the node it is
+#               directly connected to (its parent) in the UMI network
 def get_cluster_reads_and_eds(top_node, umi_network_graph):
-    read_to_ed = dict()
-    for read in top_node.reads:
-        read_to_ed[read] = 0
+    read_to_eds = dict()  # {read: (to_top_ed, to_conn_ed)}
     top_umi = top_node.umi
+    for read in top_node.reads:
+        read_to_eds[read] = (0, 0)
     for son_id in top_node.son_ids:
         son_node = umi_network_graph[son_id]
-        if son_node.umi == top_umi:
-            umi_ed = 0
-        else:
-            umi_ed = ed.align(son_node.umi, top_umi, task="distance", mode="NW")['editDistance']
+        to_top_ed = _umi_pair_ed(son_node.umi, top_umi)
+        conn_node = umi_network_graph[son_node.from_id]
+        to_conn_ed = _umi_pair_ed(son_node.umi, conn_node.umi)
         for read in son_node.reads:
-            read_to_ed[read] = umi_ed
-    return read_to_ed
+            read_to_eds[read] = (to_top_ed, to_conn_ed)
+    return read_to_eds
 
 def get_cmpt_genes(cmpt_trans, trans_to_gene_id_name):
     if not cmpt_trans or not trans_to_gene_id_name: # no compatible transcript
@@ -174,14 +183,16 @@ def get_cmpt_genes(cmpt_trans, trans_to_gene_id_name):
     return gene_ids, gene_names
 
 # output NA for reads without compatible isoforms
-# res: {read_id: [bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names, umi_ed]}
-# umi_ed: edit distance between a read's raw UMI and its cluster's representative UMI
+# res: {read_id: [bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names, to_top_ed, to_conn_ed]}
+# to_top_ed : edit distance between a read's raw UMI and its cluster's representative UMI
+# to_conn_ed: edit distance between a read's raw UMI and its directly connected node's UMI
 def umi_clustering(log_fn, read_to_trans, trans_to_gene_id_name, bu_res, umi_max_ed):
     if len(bu_res) == 0:
-        return {}, {}, {}
+        return {}, {}, {}, {}
     umi_clu_res_dict = dict()
     umi_clu_res_list = []
-    umi_ed_count_dict = dd(lambda: 0)  # {umi_ed: read_count}
+    umi_ed_to_top_count_dict = dd(lambda: 0)   # {to_top_ed: read_count}
+    umi_ed_to_conn_count_dict = dd(lambda: 0)  # {to_conn_ed: read_count}
     bc_to_umi_reads = dd(lambda: dd(lambda: []))
     perfect_bc_to_umi = dd(lambda: [])
     # assume that any two reads with same BC & UMI always come from same transcript XXX
@@ -202,14 +213,15 @@ def umi_clustering(log_fn, read_to_trans, trans_to_gene_id_name, bu_res, umi_max
                 umi = umi_network_graph[top_id].umi
                 cmpt_trans = node.cmpt_trans
                 cmpt_gene_id, cmpt_gene_names = get_cmpt_genes(cmpt_trans, trans_to_gene_id_name)
-                read_to_ed = get_cluster_reads_and_eds(umi_network_graph[top_id], umi_network_graph)
-                reads = list(read_to_ed.keys())
+                read_to_eds = get_cluster_reads_and_eds(umi_network_graph[top_id], umi_network_graph)
+                reads = list(read_to_eds.keys())
                 for r in reads:
-                    umi_ed = read_to_ed[r]
-                    umi_clu_res_dict[r] = (bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names, umi_ed)
-                    umi_ed_count_dict[umi_ed] += 1
+                    to_top_ed, to_conn_ed = read_to_eds[r]
+                    umi_clu_res_dict[r] = (bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names, to_top_ed, to_conn_ed)
+                    umi_ed_to_top_count_dict[to_top_ed] += 1
+                    umi_ed_to_conn_count_dict[to_conn_ed] += 1
                 umi_clu_res_list.append((bc, umi, reads, cmpt_trans, cmpt_gene_id, cmpt_gene_names))
-    return umi_clu_res_dict, umi_clu_res_list, umi_ed_count_dict
+    return umi_clu_res_dict, umi_clu_res_list, umi_ed_to_top_count_dict, umi_ed_to_conn_count_dict
 
 def old_umi_clustering(log_fn, read_to_trans, bu_res, umi_max_ed):
     if len(bu_res) == 0:

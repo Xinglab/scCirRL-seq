@@ -143,7 +143,7 @@ def _write_tagged_bam(in_bam_fn, out_bam_fn, region,
                 qname = r.query_name
                 if qname not in umi_clu_res_dict:
                     continue
-                bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names, _umi_ed = umi_clu_res_dict[qname]
+                bc, umi, cmpt_trans, cmpt_gene_id, cmpt_gene_names, _to_top_ed, _to_conn_ed = umi_clu_res_dict[qname]
                 r.set_tag('CB', bc,                      'Z')
                 r.set_tag('UB', umi,                     'Z')
                 r.set_tag('BE', bc_eds[qname],           'i')
@@ -216,7 +216,7 @@ def assign_bc_from_tsv(tsv_fn, ref_bcs, cand_ref_bc_seq,
                 bc_eds[qname]         = bc_ed
                 read_to_splice[qname] = 'Y' if ts_tag != '.' else 'N'
 
-    umi_clu_res_dict, umi_clu_res_list, _umi_ed_count_dict = umi_clustering(
+    umi_clu_res_dict, umi_clu_res_list, _umi_ed_to_top_count_dict, _umi_ed_to_conn_count_dict = umi_clustering(
         log_fn, read_to_trans, trans_to_gene_id_name, bu_res, umi_max_ed)
 
     n_assigned = (n_perfect_in_ref + n_perfect_uniq_to_ref
