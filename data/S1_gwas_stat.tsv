@@ -1,0 +1,9 @@
+gene_name	gene_id	response to combination chemotherapy	age-related macular degeneration	chronic obstructive pulmonary disease	adolescent idiopathic scoliosis	response to selective serotonin reuptake inhibitor	immune system disease	aggressive periodontitis	type 2 diabetes mellitus	response to reverse transcriptase inhibitor	attention deficit hyperactivity disorder	insomnia	psoriasis	schizophrenia	colorectal cancer
+IFI16	ENSG00000163565	False	False	False	False	False	True	False	False	False	False	False	False	False	False
+NTPCR	ENSG00000135778	False	False	False	False	True	False	False	False	False	False	False	False	False	False
+LINC01811	ENSG00000226320	True	False	False	False	False	False	False	False	False	True	True	False	True	False
+LINC00243	ENSG00000214894	False	True	False	False	False	False	False	True	False	False	False	False	False	False
+HLA-C	ENSG00000204525	False	False	True	False	False	False	False	False	True	False	False	True	False	False
+GNAS	ENSG00000087460	False	False	False	False	False	False	False	False	False	False	False	False	False	True
+CRYBB2P1	ENSG00000291087	False	False	False	True	False	False	True	False	False	False	False	False	True	False
+NUP50	ENSG00000093000	False	False	False	False	False	False	False	False	False	False	False	False	True	False

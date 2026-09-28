@@ -1,0 +1,23 @@
+gene_name	gene_id	Immune system disorder	Cancer	Neurological disorder	Digestive system disorder	Cardiovascular disease	Response to drug	Other disease
+PARK7	ENSG00000116288	True	False	False	False	True	False	False
+DENND2D	ENSG00000162777	False	False	False	False	False	False	True
+CAMK4	ENSG00000152495	False	False	True	False	False	False	True
+HLA-A	ENSG00000206503	True	True	False	False	False	False	True
+LINC00243	ENSG00000214894	False	False	True	True	False	False	False
+NCR3	ENSG00000204475	False	False	True	False	False	False	False
+SUPT3H	ENSG00000196284	False	False	True	True	False	False	True
+L3MBTL3	ENSG00000198945	True	True	False	False	False	False	True
+TFB1M	ENSG00000029639	False	False	True	False	False	False	False
+ARID1B	ENSG00000049618	False	False	True	False	False	False	True
+LUC7L2	ENSG00000146963	False	False	False	False	False	False	True
+TRBC2	ENSG00000211772	False	False	False	True	False	False	False
+DOCK8	ENSG00000107099	False	True	False	False	False	False	False
+BORCS7	ENSG00000166275	False	False	True	False	False	False	False
+APIP	ENSG00000149089	False	False	False	True	False	False	False
+JAML	ENSG00000160593	False	True	False	False	False	False	False
+COX16	ENSG00000133983	False	True	False	False	False	False	False
+PSMA4	ENSG00000041357	False	False	False	False	False	True	False
+C15orf40	ENSG00000169609	False	False	False	False	False	False	True
+ATF7IP2	ENSG00000166669	False	False	False	False	False	True	False
+TBCD	ENSG00000141556	False	False	False	False	False	True	False
+ZFAS1	ENSG00000177410	False	False	True	False	False	False	False

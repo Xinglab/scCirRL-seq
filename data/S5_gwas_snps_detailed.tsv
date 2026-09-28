@@ -1,0 +1,190 @@
+gene_name	gene_id	snp_id	is_donor_snp_id	haplotype	gwas_trait	gwas_trait_efo_term
+ATP6V0B	ENSG00000117410	rs4660761	True	H1	schizophrenia	Neurological disorder
+ENSA	ENSG00000143420	rs12045807	True	H1	congenital left-sided heart lesions	Cardiovascular disease
+LINC01819	ENSG00000231826	rs28525376	True	H1	type 2 diabetes mellitus	Digestive system disorder
+METTL21A	ENSG00000144401	rs4234080	True	H2	sporadic amyotrophic lateral sclerosis	Neurological disorder
+SLC25A26	ENSG00000144741	rs6781752	True	H1	colorectal cancer	Cancer
+SLC25A26	ENSG00000144741	rs332388	True	H2	atrial fibrillation	Cardiovascular disease
+SLC25A26	ENSG00000144741	rs7626079	True	H2	type 2 diabetes mellitus	Digestive system disorder
+SLC25A26	ENSG00000144741	rs2306272	False	NA	atrial fibrillation	Cardiovascular disease
+LINC02273	ENSG00000245954	rs13111795	True	H1	attention deficit hyperactivity disorder	Neurological disorder
+LINC02273	ENSG00000245954	rs34205115	True	H1	response to beta blocker	Response to drug
+LINC02273	ENSG00000245954	rs6827083	True	H1	response to beta blocker	Response to drug
+LINC02273	ENSG00000245954	rs35111904	True	H1	response to beta blocker	Response to drug
+LINC02273	ENSG00000245954	rs1962001	True	H1	response to beta blocker	Response to drug
+XRCC4	ENSG00000152422	rs6887846	True	H2	hypertension	Cardiovascular disease
+XRCC4	ENSG00000152422	rs6452524	True	H2	hypertension	Cardiovascular disease
+STARD4-AS1	ENSG00000246859	rs402848	True	H1	Epithelioid Cell Uveal Melanoma	Cancer
+STARD4-AS1	ENSG00000246859	rs722895	True	H2	attention deficit hyperactivity disorder	Neurological disorder
+STARD4-AS1	ENSG00000246859	rs17133574	True	H2	diverticular disease	Digestive system disorder
+STARD4-AS1	ENSG00000246859	rs27461	True	H1	attention deficit hyperactivity disorder	Neurological disorder
+STARD4-AS1	ENSG00000246859	rs7720886	True	H1	asthma	Other disease
+NREP	ENSG00000134986	rs17133574	True	H2	diverticular disease	Digestive system disorder
+NREP	ENSG00000134986	rs27461	True	H1	attention deficit hyperactivity disorder	Neurological disorder
+NREP	ENSG00000134986	rs7720886	True	H1	asthma	Other disease
+NREP	ENSG00000134986	rs872621	False	NA	insomnia	Neurological disorder
+NREP	ENSG00000134986	rs173896	False	NA	mental or behavioural disorder	Neurological disorder
+NREP	ENSG00000134986	rs6882649	False	NA	breast carcinoma	Cancer
+RARS1	ENSG00000113643	rs244899	True	H2	response to carboplatin	Response to drug
+HMGN4	ENSG00000182952	rs6925895	True	H1	Alzheimer disease	Neurological disorder
+HLA-A	ENSG00000206503	rs9260489	True	H2	multiple sclerosis	Immune system disorder
+HLA-A	ENSG00000206503	rs2517713	True	H2	nasopharyngeal neoplasm	Cancer
+HLA-A	ENSG00000206503	rs2860580	False	NA	nasopharyngeal neoplasm	Cancer
+HLA-A	ENSG00000206503	rs34941730	True	H2	type 1 diabetes mellitus	Immune system disorder
+HLA-A	ENSG00000206503	rs13203830	False	NA	childhood onset asthma	Other disease
+HLA-A	ENSG00000206503	rs28749114	False	NA	gastric carcinoma	Cancer
+HLA-A	ENSG00000206503	rs28749131	False	NA	allergic rhinitis	Immune system disorder
+DDX39B	ENSG00000198563	rs2734583	True	H1	Stevens-Johnson syndrome	Other disease
+DDX39B	ENSG00000198563	rs9267488	True	H1	myositis	Immune system disorder
+DDX39B	ENSG00000198563	rs933208	True	H1	insomnia	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs9272143	True	H1	cervical carcinoma	Cancer
+HLA-DQA1	ENSG00000196735	rs9271539	True	H1	Takayasu arteritis	Cardiovascular disease
+HLA-DQA1	ENSG00000196735	rs9272071	False	NA	response to interferon beta	Response to drug
+HLA-DQA1	ENSG00000196735	rs3129763	True	H1	systemic scleroderma	Cardiovascular disease
+HLA-DQA1	ENSG00000196735	rs7760731	True	H1	type 1 diabetes mellitus	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs674313	True	H1	chronic lymphocytic leukemia	Cancer
+HLA-DQA1	ENSG00000196735	rs9271640	True	H1	multiple sclerosis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9271721	True	H1	response to interferon beta	Response to drug
+HLA-DQA1	ENSG00000196735	rs9271673	True	H1	response to interferon beta	Response to drug
+HLA-DQA1	ENSG00000196735	rs9271774	True	H1	type 2 diabetes mellitus	Digestive system disorder
+HLA-DQA1	ENSG00000196735	rs3104369	True	H1	type 2 diabetes mellitus	Digestive system disorder
+HLA-DQA1	ENSG00000196735	rs9271701	True	H1	allergic rhinitis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9271700	True	H1	response to interferon beta	Response to drug
+HLA-DQA1	ENSG00000196735	rs9271695	True	H1	colorectal cancer	Cancer
+HLA-DQA1	ENSG00000196735	rs9271770	True	H1	colorectal cancer	Cancer
+HLA-DQA1	ENSG00000196735	rs9271176	True	H1	chronic lymphocytic leukemia	Cancer
+HLA-DQA1	ENSG00000196735	rs9271066	True	H1	Takayasu arteritis	Cardiovascular disease
+HLA-DQA1	ENSG00000196735	rs9271366	True	H1	ulcerative colitis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs3104373	True	H1	multiple sclerosis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9271060	True	H1	crohn's disease	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9270986	True	H1	myasthenia gravis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9271100	True	H1	leprosy	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs9271192	True	H1	Alzheimer disease	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs9271209	True	H1	ulcerative colitis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9272105	False	NA	response to interferon beta	Response to drug
+HLA-DQA1	ENSG00000196735	rs9272226	True	H1	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9272245	True	H1	Cervical Intraepithelial Neoplasia Grade 2/3	Cancer
+HLA-DQA1	ENSG00000196735	rs9272050	True	H1	cervical carcinoma	Cancer
+HLA-DQA1	ENSG00000196735	rs535777	True	H1	unipolar depression	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs2187668	True	H1	celiac disease	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9272729	False	NA	membranous glomerulonephritis	Other disease
+HLA-DQA1	ENSG00000196735	rs9273012	True	H1	childhood onset asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9272219	True	H1	schizophrenia	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs2040406	True	H1	multiple sclerosis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs3104367	True	H1	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9273373	True	H1	seasonal allergic rhinitis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9273374	True	H1	allergic disease	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9272346	True	H1	type 1 diabetes mellitus	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9272502	False	NA	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs3187964	True	H1	leprosy	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs17612712	False	NA	chronic bronchitis	Other disease
+HLA-DQA1	ENSG00000196735	rs9272545	False	NA	allergic rhinitis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs1129740	True	H1	chronic obstructive pulmonary disease	Other disease
+HLA-DQA1	ENSG00000196735	rs34004019	False	NA	allergic disease	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9273370	True	H1	hypothyroidism	Other disease
+HLA-DQA1	ENSG00000196735	rs17843580	True	H1	childhood onset asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs28407950	False	NA	allergic rhinitis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs17843577	True	H1	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9273386	True	H1	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9272594	True	H1	ocular sarcoidosis	Other disease
+HLA-DQA1	ENSG00000196735	rs17843604	True	H1	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9270911	True	H1	podoconiosis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9272426	True	H1	autoimmune thyroid disease	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9271365	True	H1	Hashimoto's thyroiditis	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs6905282	True	H1	allergic disease	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs6926894	False	NA	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9273404	True	H1	chronic obstructive pulmonary disease	Other disease
+HLA-DQA1	ENSG00000196735	rs9273123	True	H1	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs3104412	True	H1	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs17843608	True	H1	chronic obstructive pulmonary disease	Other disease
+HLA-DQA1	ENSG00000196735	rs9273113	True	H1	ocular sarcoidosis	Other disease
+HLA-DQA1	ENSG00000196735	rs1391371	False	NA	chronic rhinosinusitis	Other disease
+HLA-DQA1	ENSG00000196735	rs9273368	True	H1	latent autoimmune diabetes in adults	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9271579	False	NA	chronic rhinosinusitis	Other disease
+HLA-DQA1	ENSG00000196735	rs9271469	False	NA	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9271609	False	NA	COVID-19	Other disease
+HLA-DQA1	ENSG00000196735	rs9273364	True	H1	carpal tunnel syndrome	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs9271580	False	NA	Nasal cavity polyp	Other disease
+HLA-DQA1	ENSG00000196735	rs9273363	True	H1	type 1 diabetes mellitus	Immune system disorder
+HLA-DQA1	ENSG00000196735	rs9272521	False	NA	asthma	Other disease
+HLA-DQA1	ENSG00000196735	rs9272535	True	H1	chronic lymphocytic leukemia	Cancer
+HLA-DQA1	ENSG00000196735	rs9272566	True	H1	glomerulonephritis	Other disease
+HLA-DQA1	ENSG00000196735	rs4455710	True	H1	squamous cell carcinoma	Cancer
+HLA-DQA1	ENSG00000196735	rs7142	True	H1	Alzheimer disease	Neurological disorder
+HLA-DQA1	ENSG00000196735	rs4526236	True	H1	liver neoplasm	Cancer
+HLA-DQA1	ENSG00000196735	rs6927022	True	H1	ulcerative colitis	Immune system disorder
+HLA-DMA	ENSG00000204257	rs580962	False	NA	autism spectrum disorder	Neurological disorder
+HLA-DMA	ENSG00000204257	rs73396800	True	H1	schizophrenia	Neurological disorder
+HLA-DMA	ENSG00000204257	rs209474	True	H2	schizophrenia	Neurological disorder
+HLA-DMA	ENSG00000204257	rs1480380	True	H1	attention deficit hyperactivity disorder	Neurological disorder
+L3MBTL3	ENSG00000198945	rs6569648	True	H1	estrogen-receptor negative breast cancer	Cancer
+L3MBTL3	ENSG00000198945	rs9388766	True	H1	refractive error	Other disease
+L3MBTL3	ENSG00000198945	rs7740107	True	H1	chronic kidney disease	Other disease
+L3MBTL3	ENSG00000198945	rs4364506	True	H2	multiple sclerosis	Immune system disorder
+PCMT1	ENSG00000120265	rs9383843	True	H2	migraine disorder	Cardiovascular disease
+RNF216P1	ENSG00000196204	rs6463230	False	NA	cardioembolic stroke	Cardiovascular disease
+CUX1	ENSG00000257923	rs71559437	True	H2	breast carcinoma	Cancer
+CUX1	ENSG00000257923	rs73405966	False	NA	schizophrenia	Neurological disorder
+CUX1	ENSG00000257923	rs116934101	True	H1	osteoarthritis, hip	Other disease
+TRBC2	ENSG00000211772	rs1799886	True	H2	cystic fibrosis associated meconium ileus	Digestive system disorder
+TRBC2	ENSG00000211772	rs3114479	True	H2	alcoholic pancreatitis	Digestive system disorder
+MCPH1	ENSG00000147316	rs3020264	True	H1	response to venlafaxine	Response to drug
+CCDC107	ENSG00000159884	rs1339374	True	H1	type 2 diabetes mellitus	Digestive system disorder
+PRKCQ-AS1	ENSG00000237943	rs2255088	True	H2	respiratory system disease	Other disease
+PRKCQ-AS1	ENSG00000237943	rs41284471	True	H2	asthma	Other disease
+PRKCQ-AS1	ENSG00000237943	rs10796303	True	H1	allergic rhinitis	Immune system disorder
+PRKCQ-AS1	ENSG00000237943	rs61841332	True	H2	asthma	Other disease
+PRKCQ-AS1	ENSG00000237943	rs10737105	True	H1	childhood onset asthma	Other disease
+STK32C	ENSG00000165752	rs10870273	False	NA	pneumococcal meningitis	Neurological disorder
+STK32C	ENSG00000165752	rs12570944	True	H2	eye disease	Other disease
+HSD17B12	ENSG00000149084	rs7116641	True	H1	coronary artery disease	Cardiovascular disease
+HSD17B12	ENSG00000149084	rs7928523	True	H1	coronary artery disease	Cardiovascular disease
+HSD17B12	ENSG00000149084	rs10742682	True	H2	neuroblastoma	Cancer
+HSD17B12	ENSG00000149084	rs11037575	True	H2	neuroblastoma	Cancer
+HSD17B12	ENSG00000149084	rs1518814	True	H2	adolescent idiopathic scoliosis	Other disease
+HSD17B12	ENSG00000149084	rs7115856	True	H2	essential hypertension	Cardiovascular disease
+HSD17B12	ENSG00000149084	rs11606658	True	H2	neuroblastoma	Cancer
+HSD17B12	ENSG00000149084	rs35251247	True	H1	type 2 diabetes mellitus	Digestive system disorder
+HSD17B12	ENSG00000149084	rs1061810	True	H1	type 2 diabetes mellitus	Digestive system disorder
+HSD17B12	ENSG00000149084	rs6485462	True	H2	type 2 diabetes mellitus	Digestive system disorder
+HSD17B12	ENSG00000149084	rs35521277	True	H1	cardiovascular disease	Other disease
+ATF1	ENSG00000123268	rs11169572	True	H1	colorectal cancer	Cancer
+ATF1	ENSG00000123268	rs12372718	True	H1	colorectal cancer	Cancer
+ATF1	ENSG00000123268	rs7974517	False	NA	androgenetic alopecia	Other disease
+ATF1	ENSG00000123268	rs11169562	True	H1	polyp of colon	Digestive system disorder
+ATF1	ENSG00000123268	rs11169552	True	H2	colorectal cancer	Cancer
+ATF1	ENSG00000123268	rs7295386	True	H1	multiple sclerosis	Immune system disorder
+MDM1	ENSG00000111554	rs2227472	True	H1	atopic eczema	Immune system disorder
+MDM1	ENSG00000111554	rs3947727	True	H1	atopic eczema	Immune system disorder
+PARPBP	ENSG00000185480	rs368746845	False	NA	attention deficit hyperactivity disorder	Neurological disorder
+POLR1D	ENSG00000186184	rs7097	True	H1	diffuse large b-cell lymphoma	Cancer
+MRPL52	ENSG00000172590	rs1004030	True	H2	prostate carcinoma	Cancer
+VRK1	ENSG00000100749	rs736929	True	H2	insomnia	Neurological disorder
+VRK1	ENSG00000100749	rs4905568	True	H1	insomnia	Neurological disorder
+ANTKMT	ENSG00000103254	rs11540049	True	H1	insomnia	Neurological disorder
+SKAP1	ENSG00000141293	rs2278868	True	H2	endometriosis	Other disease
+SKAP1	ENSG00000141293	rs882380	True	H2	endometrial carcinoma	Cancer
+SKAP1	ENSG00000141293	rs2084881	False	NA	ovarian carcinoma	Cancer
+SKAP1	ENSG00000141293	rs9303542	False	NA	ovarian carcinoma	Cancer
+TSPOAP1-AS1	ENSG00000265148	rs2526377	True	H1	Alzheimer disease	Neurological disorder
+TSPOAP1-AS1	ENSG00000265148	rs2632516	True	H1	late-onset Alzheimers disease	Neurological disorder
+TSPOAP1-AS1	ENSG00000265148	rs2070107	False	NA	uterine fibroid	Cancer
+TSPOAP1-AS1	ENSG00000265148	rs7222143	False	NA	unipolar depression	Neurological disorder
+TSPOAP1-AS1	ENSG00000265148	rs12938538	False	NA	prostate carcinoma	Cancer
+TSPOAP1-AS1	ENSG00000265148	rs2632512	False	NA	stroke	Cardiovascular disease
+TSPOAP1-AS1	ENSG00000265148	rs2680707	False	NA	cardiovascular disease	Other disease
+DYM	ENSG00000141627	rs4939853	False	NA	cutaneous Leishmaniasis	Other disease
+ZNF429	ENSG00000197013	rs11085466	False	NA	colorectal cancer	Cancer
+ZNF665	ENSG00000197497	rs138126300	False	NA	response to haloperidol	Response to drug
+ZNF665	ENSG00000197497	rs16984547	True	H1	asthma	Other disease
+SIRPG	ENSG00000089012	rs2281808	True	H2	type 1 diabetes mellitus	Immune system disorder
+SIRPG	ENSG00000089012	rs6043409	True	H2	type 1 diabetes mellitus	Immune system disorder
+ITPA	ENSG00000125877	rs1127354	True	H2	chronic hepatitis C virus infection	Digestive system disorder
+ITPA	ENSG00000125877	rs6139030	True	H2	chronic hepatitis C virus infection	Digestive system disorder
+HM13	ENSG00000101294	rs62204637	True	H1	insomnia	Neurological disorder
+CSTF1	ENSG00000101138	rs6069736	False	NA	Alzheimer disease	Neurological disorder
+GNAS	ENSG00000087460	rs13831	True	H2	colorectal cancer	Cancer
+RAC2	ENSG00000128340	rs9610686	True	H1	celiac disease	Immune system disorder
+FAM118A	ENSG00000100376	rs736037	True	H2	colorectal cancer	Cancer
+FAM118A	ENSG00000100376	rs1569414	True	H2	ankylosing spondylitis	Immune system disorder
+FAM118A	ENSG00000100376	rs9615099	True	H2	prostate carcinoma	Cancer

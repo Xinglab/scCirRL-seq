@@ -1,0 +1,65 @@
+gene_name	gene_id	snp_id	is_donor_snp_id	haplotype	gwas_trait	gwas_trait_efo_term
+IFI16	ENSG00000163565	rs1772408	False	NA	immune system disease	Other disease
+MRPL36	ENSG00000171421	rs13176353	True	H2	response to mepolizumab	Response to drug
+HLA-DQB1	ENSG00000179344	rs9273410	True	H2	asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs9273374	True	H2	allergic disease	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9273373	True	H2	seasonal allergic rhinitis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs1063355	True	H2	ulcerative colitis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs1063348	True	H2	nephrotic syndrome	Other disease
+HLA-DQB1	ENSG00000179344	rs1049055	True	H2	oral cavity cancer	Cancer
+HLA-DQB1	ENSG00000179344	rs3828805	True	H2	oral cavity cancer	Cancer
+HLA-DQB1	ENSG00000179344	rs3135001	True	H2	head and neck squamous cell carcinoma	Cancer
+HLA-DQB1	ENSG00000179344	rs3129720	True	H2	multiple sclerosis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs3129780	False	NA	oral cavity cancer	Cancer
+HLA-DQB1	ENSG00000179344	rs17612712	False	NA	chronic bronchitis	Other disease
+HLA-DQB1	ENSG00000179344	rs17843608	True	H2	chronic obstructive pulmonary disease	Other disease
+HLA-DQB1	ENSG00000179344	rs1064173	True	H2	autoimmune disease	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9273370	True	H2	hypothyroidism	Other disease
+HLA-DQB1	ENSG00000179344	rs17843577	True	H2	asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs34004019	True	H1	allergic disease	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs17843580	True	H2	childhood onset asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs28407950	True	H1	allergic rhinitis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs6905282	False	NA	allergic disease	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9273386	True	H2	asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs7745040	True	H2	response to vaccine	Response to drug
+HLA-DQB1	ENSG00000179344	rs9275272	False	NA	prostate carcinoma	Cancer
+HLA-DQB1	ENSG00000179344	rs6689	True	H1	asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs2647025	True	H2	asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs9275319	True	H2	hepatocellular carcinoma	Cancer
+HLA-DQB1	ENSG00000179344	rs9275358	True	H2	type 1 diabetes mellitus	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs1770	True	H2	type 1 diabetes mellitus	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs3210176	True	H2	chronic obstructive pulmonary disease	Other disease
+HLA-DQB1	ENSG00000179344	rs1049087	True	H2	hypothyroidism	Other disease
+HLA-DQB1	ENSG00000179344	rs9273363	True	H2	type 1 diabetes mellitus	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9273364	True	H2	carpal tunnel syndrome	Neurological disorder
+HLA-DQB1	ENSG00000179344	rs9273368	True	H2	latent autoimmune diabetes in adults	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9274704	True	H2	Churg-Strauss syndrome	Cardiovascular disease
+HLA-DQB1	ENSG00000179344	rs9275184	True	H2	type 2 diabetes mellitus	Digestive system disorder
+HLA-DQB1	ENSG00000179344	rs9275477	True	H2	amyotrophic lateral sclerosis	Neurological disorder
+HLA-DQB1	ENSG00000179344	rs9275326	True	H2	Parkinson disease	Neurological disorder
+HLA-DQB1	ENSG00000179344	rs9274619	True	H2	diabetic retinopathy	Metabolic disorder
+HLA-DQB1	ENSG00000179344	rs9275334	True	H2	rheumatoid arthritis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9275495	True	H2	rheumatoid arthritis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9275152	True	H2	Parkinson disease	Neurological disorder
+HLA-DQB1	ENSG00000179344	rs28724238	True	H2	rheumatic heart disease	Cardiovascular disease
+HLA-DQB1	ENSG00000179344	rs28724242	True	H2	essential hypertension	Cardiovascular disease
+HLA-DQB1	ENSG00000179344	rs9275263	False	NA	chronic hepatitis C virus infection	Digestive system disorder
+HLA-DQB1	ENSG00000179344	rs9275282	True	H2	adult onset asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs9275260	True	H2	Henoch-Schoenlein purpura	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9275267	False	NA	chronic hepatitis C virus infection	Digestive system disorder
+HLA-DQB1	ENSG00000179344	rs9275224	True	H2	IgA glomerulonephritis	Other disease
+HLA-DQB1	ENSG00000179344	rs6457617	True	H2	rheumatoid arthritis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs6457620	True	H2	rheumatoid arthritis	Immune system disorder
+HLA-DQB1	ENSG00000179344	rs9275241	True	H2	childhood onset asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs9274659	True	H2	asthma	Other disease
+HLA-DQB1	ENSG00000179344	rs9274657	True	H2	autism spectrum disorder	Neurological disorder
+HLA-DQB1	ENSG00000179344	rs68033958	False	NA	ocular sarcoidosis	Other disease
+HLA-DQB1	ENSG00000179344	rs9273404	True	H2	chronic obstructive pulmonary disease	Other disease
+HLA-DQB1	ENSG00000179344	rs55986091	False	NA	cervical carcinoma	Cancer
+HLA-DQB1	ENSG00000179344	rs4642516	True	H2	nephrotic syndrome	Other disease
+FYN	ENSG00000010810	rs7758816	False	NA	autoimmune thyroid disease	Immune system disorder
+FYN	ENSG00000010810	rs1887316	False	NA	Parkinson disease	Neurological disorder
+FXYD2	ENSG00000137731	rs529623	False	NA	type 2 diabetes mellitus	Digestive system disorder
+ARL6IP4	ENSG00000182196	rs55742290	True	H2	Alzheimer disease	Neurological disorder
+MRPL52	ENSG00000172590	rs1004030	False	NA	prostate carcinoma	Cancer
+NMRAL1	ENSG00000153406	rs12598836	True	H2	migraine disorder	Cardiovascular disease

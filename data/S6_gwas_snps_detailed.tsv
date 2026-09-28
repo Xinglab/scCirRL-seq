@@ -1,0 +1,62 @@
+gene_name	gene_id	snp_id	is_donor_snp_id	haplotype	gwas_trait	gwas_trait_efo_term
+PARK7	ENSG00000116288	rs161802	True	H1	stroke	Cardiovascular disease
+PARK7	ENSG00000116288	rs12727642	True	H1	celiac disease	Immune system disorder
+PARK7	ENSG00000116288	rs35675666	True	H1	ulcerative colitis	Immune system disorder
+PARK7	ENSG00000116288	rs3766606	True	H1	ulcerative colitis	Immune system disorder
+DENND2D	ENSG00000162777	rs629619	True	H1	chronic obstructive pulmonary disease	Other disease
+CAMK4	ENSG00000152495	rs1457114	True	H2	insomnia	Neurological disorder
+CAMK4	ENSG00000152495	rs72793573	True	H1	asthma	Other disease
+CAMK4	ENSG00000152495	rs1457115	True	H1	atopic asthma	Other disease
+CAMK4	ENSG00000152495	rs306106	True	H2	childhood onset asthma	Other disease
+HLA-A	ENSG00000206503	rs2860580	False	NA	nasopharyngeal neoplasm	Cancer
+HLA-A	ENSG00000206503	rs9260489	True	H2	multiple sclerosis	Immune system disorder
+HLA-A	ENSG00000206503	rs2517713	True	H2	nasopharyngeal neoplasm	Cancer
+HLA-A	ENSG00000206503	rs34941730	True	H2	type 1 diabetes mellitus	Immune system disorder
+HLA-A	ENSG00000206503	rs28749114	False	NA	gastric carcinoma	Cancer
+HLA-A	ENSG00000206503	rs28749131	False	NA	allergic rhinitis	Immune system disorder
+HLA-A	ENSG00000206503	rs13203830	False	NA	childhood onset asthma	Other disease
+LINC00243	ENSG00000214894	rs4573120	True	H1	type 2 diabetes mellitus	Digestive system disorder
+LINC00243	ENSG00000214894	rs3130783	True	H1	age-related macular degeneration	Neurological disorder
+NCR3	ENSG00000204475	rs2736188	True	H2	insomnia	Neurological disorder
+SUPT3H	ENSG00000196284	rs10948172	True	H2	osteoarthritis	Other disease
+SUPT3H	ENSG00000196284	rs538801	False	NA	type 2 diabetes mellitus	Digestive system disorder
+SUPT3H	ENSG00000196284	rs3799977	False	NA	attention deficit hyperactivity disorder	Neurological disorder
+L3MBTL3	ENSG00000198945	rs6569648	True	H1	estrogen-receptor negative breast cancer	Cancer
+L3MBTL3	ENSG00000198945	rs9388766	True	H1	refractive error	Other disease
+L3MBTL3	ENSG00000198945	rs7740107	True	H1	chronic kidney disease	Other disease
+L3MBTL3	ENSG00000198945	rs4364506	True	H2	multiple sclerosis	Immune system disorder
+TFB1M	ENSG00000029639	rs162971	True	H1	attention deficit hyperactivity disorder	Neurological disorder
+ARID1B	ENSG00000049618	rs287887	True	H2	schizophrenia	Neurological disorder
+ARID1B	ENSG00000049618	rs74952737	True	H1	sunburn	Other disease
+LUC7L2	ENSG00000146963	rs11971779	True	H1	asthma	Other disease
+TRBC2	ENSG00000211772	rs1799886	True	H1	cystic fibrosis associated meconium ileus	Digestive system disorder
+TRBC2	ENSG00000211772	rs762691	True	H1	alcoholic pancreatitis	Digestive system disorder
+TRBC2	ENSG00000211772	rs3114479	True	H1	alcoholic pancreatitis	Digestive system disorder
+DOCK8	ENSG00000107099	rs520015	True	H1	cutaneous melanoma	Cancer
+DOCK8	ENSG00000107099	rs600951	True	H1	cutaneous melanoma	Cancer
+DOCK8	ENSG00000107099	rs593179	True	H1	cutaneous melanoma	Cancer
+DOCK8	ENSG00000107099	rs10969557	True	H1	lung carcinoma	Cancer
+BORCS7	ENSG00000166275	rs11191424	True	H1	schizophrenia	Neurological disorder
+BORCS7	ENSG00000166275	rs11191419	True	H1	schizophrenia	Neurological disorder
+BORCS7	ENSG00000166275	rs3740400	True	H1	schizophrenia	Neurological disorder
+BORCS7	ENSG00000166275	rs28606370	True	H1	attention deficit hyperactivity disorder	Neurological disorder
+BORCS7	ENSG00000166275	rs12244388	True	H1	attention deficit hyperactivity disorder	Neurological disorder
+BORCS7	ENSG00000166275	rs7476192	False	NA	schizophrenia	Neurological disorder
+APIP	ENSG00000149089	rs2956092	False	NA	type 2 diabetes mellitus	Digestive system disorder
+JAML	ENSG00000160593	rs11607355	False	NA	lung carcinoma	Cancer
+COX16	ENSG00000133983	rs17565772	True	H1	prostate carcinoma	Cancer
+PSMA4	ENSG00000041357	rs3813570	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs57064725	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs59133824	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs59683676	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs28498264	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs905739	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs34664138	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs34138960	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs35212593	True	H2	response to bronchodilator	Response to drug
+PSMA4	ENSG00000041357	rs113352275	True	H2	response to bronchodilator	Response to drug
+C15orf40	ENSG00000169609	rs4842860	True	H2	chronic obstructive pulmonary disease	Other disease
+ATF7IP2	ENSG00000166669	rs13335336	True	H2	response to risperidone	Response to drug
+TBCD	ENSG00000141556	rs9896933	True	H2	response to corticosteroid	Response to drug
+ZFAS1	ENSG00000177410	rs73623300	False	NA	insomnia	Neurological disorder
+ZFAS1	ENSG00000177410	rs237738	True	H2	insomnia	Neurological disorder

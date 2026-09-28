@@ -1,0 +1,20 @@
+gene_name	gene_id	snp_id	is_donor_snp_id	haplotype	gwas_trait	gwas_trait_efo_term
+IFI16	ENSG00000163565	rs1772408	True	H1	immune system disease	Other disease
+NTPCR	ENSG00000135778	rs6704443	True	H1	response to selective serotonin reuptake inhibitor	Response to drug
+LINC01811	ENSG00000226320	rs6550253	False	NA	response to combination chemotherapy	Response to drug
+LINC01811	ENSG00000226320	rs1520637	True	H2	insomnia	Neurological disorder
+LINC01811	ENSG00000226320	rs2122231	True	H2	insomnia	Neurological disorder
+LINC01811	ENSG00000226320	rs9841272	True	H2	insomnia	Neurological disorder
+LINC01811	ENSG00000226320	rs13081272	True	H2	insomnia	Neurological disorder
+LINC01811	ENSG00000226320	rs1520625	True	H2	attention deficit hyperactivity disorder	Neurological disorder
+LINC01811	ENSG00000226320	rs10510660	True	H2	schizophrenia	Neurological disorder
+LINC00243	ENSG00000214894	rs4573120	True	H2	type 2 diabetes mellitus	Digestive system disorder
+LINC00243	ENSG00000214894	rs3130783	True	H2	age-related macular degeneration	Neurological disorder
+HLA-C	ENSG00000204525	rs5010528	True	H1	response to reverse transcriptase inhibitor	Response to drug
+HLA-C	ENSG00000204525	rs2524096	True	H2	psoriasis	Immune system disorder
+HLA-C	ENSG00000204525	rs2074488	False	NA	chronic obstructive pulmonary disease	Other disease
+GNAS	ENSG00000087460	rs13831	False	NA	colorectal cancer	Cancer
+CRYBB2P1	ENSG00000291087	rs6004671	True	H1	schizophrenia	Neurological disorder
+CRYBB2P1	ENSG00000291087	rs5996945	True	H1	adolescent idiopathic scoliosis	Other disease
+CRYBB2P1	ENSG00000291087	rs56217753	True	H2	aggressive periodontitis	Digestive system disorder
+NUP50	ENSG00000093000	rs2176039	True	H2	schizophrenia	Neurological disorder
